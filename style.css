@@ -1,0 +1,14 @@
+td { font-size: 14pt; }
+h2 { font-size: 20pt; }
+input { font-size: 14pt; }
+
+.error input[type="text"] { border-color: #c00; }
+.error span.rowname { color: #c00;  }
+tr.error { background: #fcc; }
+
+table { border-collapse: collapse;  }
+tr { background: #eee; }
+td { border: 1px solid #ccc; padding: 2px 10px; }
+
+input[type="text"] {  min-width: 300px; border: 1px solid #333; }
+textarea { min-width: 300px; height: 10em; }

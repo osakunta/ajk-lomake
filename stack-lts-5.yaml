@@ -1,0 +1,6 @@
+resolver: lts-5.5
+packages:
+- '.'
+extra-deps:
+- servant-lucid-0.4.4.6
+flags: {}

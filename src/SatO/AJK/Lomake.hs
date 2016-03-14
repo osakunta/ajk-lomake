@@ -32,7 +32,6 @@ import Network.Wai
 import Servant
 import Servant.HTML.Lucid
 import System.IO              (hPutStrLn, stderr)
-import Text.PrettyPrint       hiding ((<>))
 
 import qualified Network.Wai.Handler.Warp as Warp
 
@@ -97,7 +96,7 @@ data Family = Family
 data Satakunta = Satakunta
     { satakuntaSiteet  :: D "Siteeni Satakuntaan (omin sanoin)"                                       'True LongText
     , satakuntaFrom    :: D "Hakija on syntynyt, opiskellut tai asunut Satakunnassa"                  'True Bool
-    , satakuntaParents :: D " Hakijan vanhemmista jompikumpi on kuulunut Satakuntalaiseen osakuntaan" 'True Bool
+    , satakuntaParents :: D "Hakijan vanhemmista jompikumpi on kuulunut Satakuntalaiseen osakuntaan" 'True Bool
     , satakuntaTiedots :: D "Hakijan tietoja saa käyttää Satakuntalaisen Osakunnan tiedotukseen"      'True Bool
     }
 
@@ -208,7 +207,7 @@ instance LomakeField Jasen where
 instance LomakeField LongText where
     lomakeFieldView _ env name =
        textarea_ [name_ name] $ toHtml $ submittedTextValue env name
-    lomakeFieldPretty (LongText t) = text " " $$ lomakeFieldPretty t
+    lomakeFieldPretty (LongText t) = "\n" <> lomakeFieldPretty t <> "\n"
     lomakeFieldValidate _proxyA proxyReq = ofmap proxyReq LongText . lomakeText proxyReq
 
 -------------------------------------------------------------------------------

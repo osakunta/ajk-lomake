@@ -50,6 +50,11 @@ module Lomake (
     -- ** Singleton bool
     SBool(..),
     SBoolI(..),
+    -- * Pretty
+    text,
+    isEmpty,
+    ($$),
+    render,
     ) where
 
 import Control.Monad  (forM_, when)
@@ -61,11 +66,9 @@ import Data.Text      (Text)
 import GHC.TypeLits   (KnownSymbol, Symbol, symbolVal)
 import Generics.SOP
 import Lucid
-import Text.PrettyPrint hiding ((<>))
 
 import qualified Data.Map         as Map
 import qualified Data.Text        as T
-import qualified Text.PrettyPrint as Pretty
 import qualified Servant
 
 -- | Field description.
@@ -228,13 +231,13 @@ instance (LomakeField a, KnownSymbol sym, SBoolI req) => LomakeField' (D sym req
             D val -> p val
         SFalse -> case x of
             D (Just val) -> p val
-            D Nothing    -> Pretty.empty
+            D Nothing    -> ""
       where
         p :: a -> Doc
         p val =
             let doc = lomakeFieldPretty val
             in if isEmpty doc
-                then Pretty.empty
+                then ""
                 else text (desc ++ ":") <+> pad <+> doc
 
         proxySym = Proxy :: Proxy sym
@@ -380,7 +383,7 @@ instance (LomakeSection a, KnownSymbol sym) => LomakeSection' (D sym 'True a) wh
     lomakeSectionForm' = D <$> lomakeSectionForm
 
     lomakeSectionPretty' (D x) =
-        text name $$ text ('=' <$ name) $$ lomakeSectionPretty x $$ text ""
+        text name $$ text ('=' <$ name) $$ lomakeSectionPretty x $$ text "\n"
       where
         name = symbolVal (Proxy :: Proxy sym)
 
@@ -515,3 +518,27 @@ forMSep_ :: Applicative m => [a] -> m c -> (a -> m b) -> m ()
 forMSep_ [] _ _     = pure ()
 forMSep_ [x] _ f    = f x *> pure ()
 forMSep_ (x:xs) s f = f x *> s *> forMSep_ xs s f
+
+-------------------------------------------------------------------------------
+-- Pretty
+-------------------------------------------------------------------------------
+
+type Doc = Text
+
+text :: String -> Doc
+text = T.pack
+
+($$) :: Doc -> Doc -> Doc
+a $$ b
+    | T.null a  = b
+    | T.null b  = a
+    | otherwise = a <> "\n" <> b
+
+(<+>) :: Doc -> Doc -> Doc
+a <+> b = a <> " " <> b
+
+isEmpty :: Doc -> Bool
+isEmpty = T.null
+
+render :: Doc -> String
+render = T.unpack

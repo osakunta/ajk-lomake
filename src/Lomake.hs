@@ -19,6 +19,7 @@ module Lomake (
     -- * Lomake environment
     LomakeEnv,
     emptyLomakeEnv,
+    hiddenForm,
     submittedTextValue,
     -- * Lomake validation
     LomakeValidate,
@@ -51,7 +52,7 @@ module Lomake (
     SBoolI(..),
     ) where
 
-import Control.Monad  (when)
+import Control.Monad  (forM_, when)
 import Data.Map       (Map)
 import Data.Maybe     (isJust, fromMaybe)
 import Data.Semigroup ((<>))
@@ -185,6 +186,11 @@ hasErrors (LomakeEnv errs _) name = isJust $ Map.lookup name errs
 submittedTextValue :: LomakeEnv -> Text -> Text
 submittedTextValue (LomakeEnv _ params) name = fromMaybe "" $
     lookup name params
+
+-- | This can be used to resubmit the form.
+hiddenForm :: Monad m => LomakeEnv -> HtmlT m ()
+hiddenForm (LomakeEnv _ inputs) = forM_ inputs $ \(k, v) ->
+    input_ [type_ "hidden", name_ k, value_ v]
 
 class LomakeField' a where
     lomakeFieldView'

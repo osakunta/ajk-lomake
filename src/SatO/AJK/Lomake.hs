@@ -23,6 +23,7 @@ module SatO.AJK.Lomake (
 
 import Control.Monad.IO.Class (MonadIO (..))
 import Data.FileEmbed         (embedStringFile)
+import Data.Semigroup         ((<>))
 import Data.String            (fromString)
 import Data.Text              (Text)
 import Generics.SOP.TH        (deriveGeneric)
@@ -166,7 +167,7 @@ instance LomakeEnum Siv
 instance LomakeField Siv where
     lomakeFieldView   = enumLomakeFieldView
     lomakeFieldValidate  = enumLomakeFieldValidate
-    lomakeFieldPretty = text . humanShow 
+    lomakeFieldPretty = text . humanShow
 
 -------------------------------------------------------------------------------
 -- Parents
@@ -214,41 +215,75 @@ instance LomakeField LongText where
 -- API
 -------------------------------------------------------------------------------
 
-newtype IndexPage = IndexPage
-    { indexPageView :: LomakeEnv
-    }
+newtype IndexPage = IndexPage (LomakeResult AJK)
+newtype ConfirmPage = ConfirmPage Bool -- Error
 
 type AJKLomakeAPI =
     Get '[HTML] IndexPage
     :<|> ReqBody '[FormUrlEncoded] (LomakeResult AJK) :> Post '[HTML] IndexPage
+    :<|> "send" :> ReqBody '[FormUrlEncoded] (LomakeResult AJK) :> Post '[HTML] ConfirmPage
 
 instance ToHtml IndexPage where
-    toHtml (IndexPage env) =  doctypehtml_ $ do
-        head_ $ style_ $ fromString $ $(embedStringFile "style.css")
-        body_ $
-            form_ [action_ "/", method_ "POST"] $ do
-                lomakeView (Proxy :: Proxy AJK) env
-                hr_ []
-                input_ [type_ "submit", value_ "Lähetä"]
-                toHtmlRaw ("&nbsp;" :: Text)
-                input_ [type_ "reset", value_ "Tyhjennä"]
+    toHtml (IndexPage (LomakeResult env v)) =  doctypehtml_ $ do
+        case v of
+            Nothing -> do
+                head_ $ do
+                    style_ $ fromString $ $(embedStringFile "style.css")
+                    title_ "Asuntohaku Satalinnan säätiön asuntoihin"
+                body_ $
+                    form_ [action_ actionUrl, method_ "POST"] $ do
+                        lomakeView (Proxy :: Proxy AJK) env
+                        hr_ []
+                        input_ [type_ "submit", value_ "Esikatsele"]
+                        toHtmlRaw ("&nbsp;" :: Text)
+                        input_ [type_ "reset", value_ "Tyhjennä"]
+            Just ajk -> do
+                head_ $ do
+                    style_ $ fromString $ $(embedStringFile "style.css")
+                    title_ "Asuntohaku Satalinnan säätiön asuntoihin"
+                body_ $ do
+                    h2_ $ "Tarkista tietosi vielä kerran:"
+                    pre_ $ toHtml $ render $ lomakePretty ajk
+                    hr_ []
+                    form_ [action_ $ actionUrl <> "send", method_ "POST"] $ do
+                        hiddenForm env
+                        input_ [type_ "submit", value_ "Lähetä"]
+    toHtmlRaw _ = pure ()
+
+instance ToHtml ConfirmPage where
+    toHtml (ConfirmPage sent) = doctypehtml_ $ do
+        head_ $ do
+            style_ $ fromString $ $(embedStringFile "style.css")
+            title_ "Kiitos hakemuksestasi Satalinnan säätiön asuntoihin"
+        body_ $ do
+            case sent of
+                True  -> div_ $ "Kiitos hakemuksestasi!"
+                False -> div_ $ "Virhe! Jotain odottamatonta tapahtui. Kokeile hetken päästä uudestaan."
     toHtmlRaw _ = pure ()
 
 ajkLomakeApi :: Proxy AJKLomakeAPI
 ajkLomakeApi = Proxy
 
-process :: MonadIO m => LomakeResult AJK -> m IndexPage
-process (LomakeResult env v) = do
-    liftIO $ putStrLn $ render $ maybe mempty lomakePretty v
-    return $ IndexPage env
+firstPost :: MonadIO m => LomakeResult AJK -> m IndexPage
+firstPost = return . IndexPage
+
+secondPost :: MonadIO m => LomakeResult AJK -> m ConfirmPage
+secondPost (LomakeResult _ Nothing) = pure $ ConfirmPage False
+secondPost (LomakeResult _ (Just _ajk)) = do
+    -- TODO: send email
+    pure $ ConfirmPage True
+
+actionUrl :: Text
+actionUrl = "/"
 
 -------------------------------------------------------------------------------
 -- WAI boilerplate
 -------------------------------------------------------------------------------
 
 server :: Server AJKLomakeAPI
-server = pure (IndexPage emptyLomakeEnv)
-    :<|> process
+server = pure (IndexPage (LomakeResult emptyLomakeEnv Nothing))
+    :<|> firstPost
+    :<|> secondPost
 
 app :: Application
 app = serve ajkLomakeApi server

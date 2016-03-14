@@ -48,11 +48,12 @@ library:
     - wai
     - warp
 
-#executables:
-#  avatar-server:
-#    ghc-options: -threaded
-#    main: Main.hs
-#    source-dirs: srv
-#    dependencies:
-#      - base
-#      - avatar-app
+executables:
+  ajk-lomake-server:
+    ghc-options: -threaded
+    main: Main.hs
+    source-dirs: srv
+    dependencies:
+      - base
+      - ajk-lomake
+      - hdaemonize

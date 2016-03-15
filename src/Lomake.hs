@@ -378,8 +378,9 @@ class LomakeSection' a where
     lomakeSectionPretty' :: a -> Doc
 
 instance (LomakeSection a, KnownSymbol sym) => LomakeSection' (D sym 'True a) where
-    lomakeSectionView' _ env = div_ [class_ "row"] $ div_ [class_ "large-12 columns"] $ do
-        h2_ $ fromString $ symbolVal (Proxy :: Proxy sym)
+    lomakeSectionView' _ env = do
+        div_ [class_ "row"] $ div_ [class_ "large-12 columns"] $ do
+            h2_ $ fromString $ symbolVal (Proxy :: Proxy sym)
         lomakeSectionView (Proxy :: Proxy a) env
 
     lomakeSectionForm' = D <$> lomakeSectionForm

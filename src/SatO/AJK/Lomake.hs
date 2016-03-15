@@ -231,8 +231,6 @@ instance ToHtml IndexPage where
                     lomakeView (Proxy :: Proxy AJK) env
                     div_ [class_ "row"] $ div_ [class_ "large-12 columns"] $ do
                         input_ [class_ "medium success button", type_ "submit", value_ "Esikatsele"]
-                        " "
-                        input_ [class_ "medium button", type_ "reset", value_ "Tyhjennä"]
             Just ajk -> do
                 div_ [class_ "row"] $ div_ [class_ "large-12 columns"] $ do
                     h2_ $ "Tarkista tietosi vielä kerran:"

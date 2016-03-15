@@ -223,30 +223,22 @@ type AJKLomakeAPI =
     :<|> "send" :> ReqBody '[FormUrlEncoded] (LomakeResult AJK) :> Post '[HTML] ConfirmPage
 
 instance ToHtml IndexPage where
-    toHtml (IndexPage (LomakeResult env v)) =  doctypehtml_ $ do
+    toHtml (IndexPage (LomakeResult env v)) = page_ "Asuntohaku Satalinnan säätiön asuntoihin" $ do
         case v of
             Nothing -> do
-                head_ $ do
-                    style_ $ fromString $ $(embedStringFile "style.css")
-                    title_ "Asuntohaku Satalinnan säätiön asuntoihin"
-                body_ $
-                    form_ [action_ actionUrl, method_ "POST"] $ do
-                        lomakeView (Proxy :: Proxy AJK) env
-                        hr_ []
-                        input_ [type_ "submit", value_ "Esikatsele"]
-                        toHtmlRaw ("&nbsp;" :: Text)
-                        input_ [type_ "reset", value_ "Tyhjennä"]
-            Just ajk -> do
-                head_ $ do
-                    style_ $ fromString $ $(embedStringFile "style.css")
-                    title_ "Asuntohaku Satalinnan säätiön asuntoihin"
-                body_ $ do
-                    h2_ $ "Tarkista tietosi vielä kerran:"
-                    pre_ $ toHtml $ render $ lomakePretty ajk
+                form_ [action_ actionUrl, method_ "POST"] $ do
+                    lomakeView (Proxy :: Proxy AJK) env
                     hr_ []
-                    form_ [action_ $ actionUrl <> "send", method_ "POST"] $ do
-                        hiddenForm env
-                        input_ [type_ "submit", value_ "Lähetä"]
+                    input_ [type_ "submit", value_ "Esikatsele"]
+                    toHtmlRaw ("&nbsp;" :: Text)
+                    input_ [type_ "reset", value_ "Tyhjennä"]
+            Just ajk -> do
+                h2_ $ "Tarkista tietosi vielä kerran:"
+                pre_ $ toHtml $ render $ lomakePretty ajk
+                hr_ []
+                form_ [action_ $ actionUrl <> "send", method_ "POST"] $ do
+                    hiddenForm env
+                    input_ [type_ "submit", value_ "Lähetä"]
     toHtmlRaw _ = pure ()
 
 instance ToHtml ConfirmPage where
@@ -274,6 +266,23 @@ secondPost (LomakeResult _ (Just _ajk)) = do
 
 actionUrl :: Text
 actionUrl = "/"
+
+-------------------------------------------------------------------------------
+-- HTML stuff
+-------------------------------------------------------------------------------
+
+-- | Page template.
+page_ :: Monad m => Text -> HtmlT m () -> HtmlT m ()
+page_ t b = doctypehtml_ $ do
+    head_ $ do
+        title_ $ toHtml t
+        meta_ [charset_ "utf-8"]
+        meta_ [name_ "viewport", content_ "width=device-width, initial-scale=1.0"]
+        meta_ [httpEquiv_ "x-ua-compatible", content_"ie=edge"]
+        style_ [type_ "text/css"] ($(embedStringFile "foundation-6/css/foundation.min.css") :: String)
+        style_ [type_ "text/css"] ($(embedStringFile "style.css") :: String)
+    body_ $ do
+        b
 
 -------------------------------------------------------------------------------
 -- WAI boilerplate

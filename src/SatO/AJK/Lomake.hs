@@ -24,7 +24,6 @@ module SatO.AJK.Lomake (
 import Control.Monad.IO.Class (MonadIO (..))
 import Data.FileEmbed         (embedStringFile)
 import Data.Semigroup         ((<>))
-import Data.String            (fromString)
 import Data.Text              (Text)
 import Generics.SOP.TH        (deriveGeneric)
 import Lucid
@@ -223,30 +222,32 @@ type AJKLomakeAPI =
     :<|> "send" :> ReqBody '[FormUrlEncoded] (LomakeResult AJK) :> Post '[HTML] ConfirmPage
 
 instance ToHtml IndexPage where
-    toHtml (IndexPage (LomakeResult env v)) = page_ "Asuntohaku Satalinnan säätiön asuntoihin" $ do
+    toHtml (IndexPage (LomakeResult env v)) = page_ "Hakulomake Satalinnan Säätion vuokraamiin huoneistoihin" $ do
         case v of
             Nothing -> do
                 form_ [action_ actionUrl, method_ "POST"] $ do
+                    div_ [class_ "row"] $ div_ [class_ "large-12 columns"] $ do
+                        h1_ $ "Hakulomake Satalinnan Säätion vuokraamiin huoneistoihin"
                     lomakeView (Proxy :: Proxy AJK) env
-                    hr_ []
-                    input_ [type_ "submit", value_ "Esikatsele"]
-                    toHtmlRaw ("&nbsp;" :: Text)
-                    input_ [type_ "reset", value_ "Tyhjennä"]
+                    div_ [class_ "row"] $ div_ [class_ "large-12 columns"] $ do
+                        input_ [class_ "medium success button", type_ "submit", value_ "Esikatsele"]
+                        " "
+                        input_ [class_ "medium button", type_ "reset", value_ "Tyhjennä"]
             Just ajk -> do
-                h2_ $ "Tarkista tietosi vielä kerran:"
-                pre_ $ toHtml $ render $ lomakePretty ajk
+                div_ [class_ "row"] $ div_ [class_ "large-12 columns"] $ do
+                    h2_ $ "Tarkista tietosi vielä kerran:"
+                div_ [class_ "row"] $ div_ [class_ "large-12 columns"] $ do
+                    pre_ $ toHtml $ render $ lomakePretty ajk
                 hr_ []
                 form_ [action_ $ actionUrl <> "send", method_ "POST"] $ do
                     hiddenForm env
-                    input_ [type_ "submit", value_ "Lähetä"]
+                    div_ [class_ "row"] $ div_ [class_ "large-12 columns"] $ do
+                        input_ [class_ "medium success button", type_ "submit", value_ "Lähetä"]
     toHtmlRaw _ = pure ()
 
 instance ToHtml ConfirmPage where
-    toHtml (ConfirmPage sent) = doctypehtml_ $ do
-        head_ $ do
-            style_ $ fromString $ $(embedStringFile "style.css")
-            title_ "Kiitos hakemuksestasi Satalinnan säätiön asuntoihin"
-        body_ $ do
+    toHtml (ConfirmPage sent) = page_ "Asuntohaku Satalinnan säätiön aesuntoihin" $ do
+        div_ [class_ "row"] $ div_ [class_ "large-12 columns"] $ do
             case sent of
                 True  -> div_ $ "Kiitos hakemuksestasi!"
                 False -> div_ $ "Virhe! Jotain odottamatonta tapahtui. Kokeile hetken päästä uudestaan."

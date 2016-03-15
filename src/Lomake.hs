@@ -57,7 +57,7 @@ module Lomake (
     render,
     ) where
 
-import Control.Monad  (forM_, when)
+import Control.Monad  (forM_)
 import Data.Map       (Map)
 import Data.Maybe     (isJust, fromMaybe)
 import Data.Semigroup ((<>))
@@ -152,7 +152,7 @@ fieldInfos' (Constructor _name) = hpure (FieldInfo "")
 fieldInfos' (Infix _ _ _) = FieldInfo "_1" :* FieldInfo "_2" :* Nil
 fieldInfos' (Record _ fs) = fs
 
--- | The environment resulted after parsing the inputs. Contains 
+-- | The environment resulted after parsing the inputs. Contains
 -- warnings and original inputs.
 data LomakeEnv = LomakeEnv
     { _lomakeEnvErrors :: Map Text [Text]
@@ -173,7 +173,7 @@ class LomakeField a where
 
     lomakeFieldValidate
         :: SBoolI req
-        => Proxy a 
+        => Proxy a
         -> Proxy req
         -> Text  -- ^ field name
         -> LomakeValidate (O req a)
@@ -212,17 +212,19 @@ class LomakeField' a where
         -> Doc
 
 instance (LomakeField a, KnownSymbol sym, SBoolI req) => LomakeField' (D sym req a) where
-    lomakeFieldView' _ env name = tr_ [class_ cls] $ do
-        td_ $ do
-            span_ [class_ "rowname"] $ toHtml desc
-            when (lowerSBool proxyReq) $ span_ [class_ "required"] $ "*"
-        td_ $ lomakeFieldView proxyA env (T.pack name)
+    lomakeFieldView' _ env name = div_ [class_ cls] $ do
+        div_ [class_ "large-4 columns"] $ do
+            label_ [class_ "text-right middle", for_ $ T.pack name] $ toHtml desc'
+        div_ [class_ "large-8 columns"] $ lomakeFieldView proxyA env (T.pack name)
       where
         proxyA = Proxy :: Proxy a
         proxySym = Proxy :: Proxy sym
         proxyReq = Proxy :: Proxy req
         desc = T.pack (symbolVal proxySym)
-        cls = if hasErrors env (T.pack name) then "error" else ""
+        desc' = if (lowerSBool proxyReq)
+                    then desc <> "*"
+                    else desc
+        cls = if hasErrors env (T.pack name) then "row error" else "row"
 
     lomakeFieldValidate' name = D <$> (lomakeFieldValidate (Proxy :: Proxy a) (Proxy :: Proxy req)  (T.pack name))
 
@@ -251,7 +253,7 @@ instance (LomakeField a, KnownSymbol sym, SBoolI req) => LomakeField' (D sym req
 sopView
     :: forall a xs m. (Generic a, HasDatatypeInfo a, Code a ~ '[xs], All LomakeField' xs, Monad m)
     => Proxy a -> LomakeEnv -> HtmlT m ()
-sopView _ env = table_ $
+sopView _ env =
     sopView' (fieldInfos (datatypeInfo (Proxy :: Proxy a)))
   where
     sopView' :: forall ys. (All LomakeField' ys) => NP FieldInfo ys -> HtmlT m ()
@@ -376,7 +378,7 @@ class LomakeSection' a where
     lomakeSectionPretty' :: a -> Doc
 
 instance (LomakeSection a, KnownSymbol sym) => LomakeSection' (D sym 'True a) where
-    lomakeSectionView' _ env = do
+    lomakeSectionView' _ env = div_ [class_ "row"] $ div_ [class_ "large-12 columns"] $ do
         h2_ $ fromString $ symbolVal (Proxy :: Proxy sym)
         lomakeSectionView (Proxy :: Proxy a) env
 
@@ -481,7 +483,7 @@ bool _ f False = f
 
 enumLomakeFieldValidate
     :: forall a req. (Enum a, Bounded a, Show a, SBoolI req)
-    => Proxy a 
+    => Proxy a
     -> Proxy req
     -> Text
     -> LomakeValidate (O req a)
@@ -504,7 +506,7 @@ enumLomakeFieldView
     -> LomakeEnv
     -> Text  -- ^ field name
     -> HtmlT m ()
-enumLomakeFieldView _ env name = forMSep_ values "; " $ \v ->
+enumLomakeFieldView _ env name = forMSep_ values "" $ \v ->
       label_ $ do
           let c = if submittedTextValue env name == (T.pack $ show v)
                   then [checked_]

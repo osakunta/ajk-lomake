@@ -24,7 +24,6 @@ module SatO.AJK.Lomake (
 import Control.Monad.IO.Class (MonadIO (..))
 import Data.FileEmbed         (embedStringFile)
 import Data.Semigroup         ((<>))
-import Data.String            (fromString)
 import Data.Text              (Text)
 import Generics.SOP.TH        (deriveGeneric)
 import Lucid
@@ -223,38 +222,32 @@ type AJKLomakeAPI =
     :<|> "send" :> ReqBody '[FormUrlEncoded] (LomakeResult AJK) :> Post '[HTML] ConfirmPage
 
 instance ToHtml IndexPage where
-    toHtml (IndexPage (LomakeResult env v)) =  doctypehtml_ $ do
+    toHtml (IndexPage (LomakeResult env v)) = page_ "Hakulomake Satalinnan Säätion vuokraamiin huoneistoihin" $ do
         case v of
             Nothing -> do
-                head_ $ do
-                    style_ $ fromString $ $(embedStringFile "style.css")
-                    title_ "Asuntohaku Satalinnan säätiön asuntoihin"
-                body_ $
-                    form_ [action_ actionUrl, method_ "POST"] $ do
-                        lomakeView (Proxy :: Proxy AJK) env
-                        hr_ []
-                        input_ [type_ "submit", value_ "Esikatsele"]
-                        toHtmlRaw ("&nbsp;" :: Text)
-                        input_ [type_ "reset", value_ "Tyhjennä"]
+                form_ [action_ actionUrl, method_ "POST"] $ do
+                    div_ [class_ "row"] $ div_ [class_ "large-12 columns"] $ do
+                        h1_ $ "Hakulomake Satalinnan Säätion vuokraamiin huoneistoihin"
+                    lomakeView (Proxy :: Proxy AJK) env
+                    div_ [class_ "row"] $ div_ [class_ "large-12 columns"] $ do
+                        input_ [class_ "medium success button", type_ "submit", value_ "Esikatsele"]
+                        " "
+                        input_ [class_ "medium button", type_ "reset", value_ "Tyhjennä"]
             Just ajk -> do
-                head_ $ do
-                    style_ $ fromString $ $(embedStringFile "style.css")
-                    title_ "Asuntohaku Satalinnan säätiön asuntoihin"
-                body_ $ do
+                div_ [class_ "row"] $ div_ [class_ "large-12 columns"] $ do
                     h2_ $ "Tarkista tietosi vielä kerran:"
+                div_ [class_ "row"] $ div_ [class_ "large-12 columns"] $ do
                     pre_ $ toHtml $ render $ lomakePretty ajk
-                    hr_ []
-                    form_ [action_ $ actionUrl <> "send", method_ "POST"] $ do
-                        hiddenForm env
-                        input_ [type_ "submit", value_ "Lähetä"]
+                hr_ []
+                form_ [action_ $ actionUrl <> "send", method_ "POST"] $ do
+                    hiddenForm env
+                    div_ [class_ "row"] $ div_ [class_ "large-12 columns"] $ do
+                        input_ [class_ "medium success button", type_ "submit", value_ "Lähetä"]
     toHtmlRaw _ = pure ()
 
 instance ToHtml ConfirmPage where
-    toHtml (ConfirmPage sent) = doctypehtml_ $ do
-        head_ $ do
-            style_ $ fromString $ $(embedStringFile "style.css")
-            title_ "Kiitos hakemuksestasi Satalinnan säätiön asuntoihin"
-        body_ $ do
+    toHtml (ConfirmPage sent) = page_ "Asuntohaku Satalinnan säätiön aesuntoihin" $ do
+        div_ [class_ "row"] $ div_ [class_ "large-12 columns"] $ do
             case sent of
                 True  -> div_ $ "Kiitos hakemuksestasi!"
                 False -> div_ $ "Virhe! Jotain odottamatonta tapahtui. Kokeile hetken päästä uudestaan."
@@ -274,6 +267,23 @@ secondPost (LomakeResult _ (Just _ajk)) = do
 
 actionUrl :: Text
 actionUrl = "/"
+
+-------------------------------------------------------------------------------
+-- HTML stuff
+-------------------------------------------------------------------------------
+
+-- | Page template.
+page_ :: Monad m => Text -> HtmlT m () -> HtmlT m ()
+page_ t b = doctypehtml_ $ do
+    head_ $ do
+        title_ $ toHtml t
+        meta_ [charset_ "utf-8"]
+        meta_ [name_ "viewport", content_ "width=device-width, initial-scale=1.0"]
+        meta_ [httpEquiv_ "x-ua-compatible", content_"ie=edge"]
+        style_ [type_ "text/css"] ($(embedStringFile "foundation-6/css/foundation.min.css") :: String)
+        style_ [type_ "text/css"] ($(embedStringFile "style.css") :: String)
+    body_ $ do
+        b
 
 -------------------------------------------------------------------------------
 -- WAI boilerplate

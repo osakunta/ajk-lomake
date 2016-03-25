@@ -34,9 +34,9 @@ module Lomake (
     --
     -- @
     --instance LomakeField E where
-    --    lomakeFieldView   = enumLomakeFieldView
+    --    lomakeFieldView      = enumLomakeFieldView
     --    lomakeFieldValidate  = enumLomakeFieldValidate
-    --    lomakeFieldPretty = text . humanShow
+    --    lomakeFieldPretty    = text . humanShow
     -- @
     LomakeEnum(..),
     HumanShow(..),
@@ -48,8 +48,9 @@ module Lomake (
     otraverse,
     ofmap,
     -- ** Singleton bool
-    SBool(..),
-    SBoolI(..),
+    Required(..),
+    SRequired(..),
+    SRequiredI(..),
     -- * Pretty
     text,
     isEmpty,
@@ -72,64 +73,70 @@ import qualified Data.Text        as T
 import qualified Servant
 
 -- | Field description.
-data D (sym :: Symbol) (req :: Bool) a = D (O req a)
+data D (sym :: Symbol) (req :: Required) a = D (O req a)
 
-d :: forall sym req a. SBoolI req => a -> D sym req a
-d = case sbool (Proxy :: Proxy req) of
-    STrue  -> D . id
-    SFalse -> D . Just
+d :: forall sym req a. SRequiredI req => a -> D sym req a
+d = case srequired (Proxy :: Proxy req) of
+    SRequired -> D . id
+    SOptional -> D . Just
 
 unD :: D sym req a -> O req a
 unD (D x) = x
 
 -- | 'D' can be always flatten to 'Maybe'.
-dToMaybe :: forall sym req a. SBoolI req => D sym req a -> Maybe a
-dToMaybe = case sbool (Proxy :: Proxy req) of
-    STrue  -> Just . unD
-    SFalse -> unD
+dToMaybe :: forall sym req a. SRequiredI req => D sym req a -> Maybe a
+dToMaybe = case srequired (Proxy :: Proxy req) of
+    SRequired  -> Just . unD
+    SOptional -> unD
+
+-------------------------------------------------------------------------------
+-- Required
+-------------------------------------------------------------------------------
+
+data Required = Required | Optional
 
 -------------------------------------------------------------------------------
 -- Singleton boolean
 -------------------------------------------------------------------------------
 
-data SBool b where
-    SFalse :: SBool 'False
-    STrue  :: SBool 'True
+data SRequired (r :: Required) where
+    SRequired :: SRequired 'Required
+    SOptional :: SRequired 'Optional
 
-class SBoolI b where sbool :: Proxy b -> SBool b
-instance SBoolI 'True where sbool _ = STrue
-instance SBoolI 'False where sbool _ = SFalse
+class SRequiredI b where srequired :: Proxy b -> SRequired b
+instance SRequiredI 'Required where srequired _ = SRequired
+instance SRequiredI 'Optional where srequired _ = SOptional
 
-lowerSBool :: SBoolI b => Proxy b -> Bool
-lowerSBool p = case sbool p of
-    SFalse -> False
-    STrue  -> True
+lowerSRequired :: SRequiredI b => Proxy b -> Bool
+lowerSRequired p = case srequired p of
+    SOptional -> False
+    SRequired  -> True
 
 -------------------------------------------------------------------------------
 -- O - I or Maybe
 -------------------------------------------------------------------------------
 
 type family O r a :: * where
-    O 'True a  = a
-    O 'False a = Maybe a
+    O 'Required a  = a
+    O 'Optional a = Maybe a
 
 otraverse
-    :: forall req f a b. (SBoolI req, Applicative f)
+    :: forall req f a b. (SRequiredI req, Applicative f)
     => Proxy req
     -> (a -> f b)
     -> O req a -> f (O req b)
-otraverse p = case sbool p of
-    STrue  -> id
-    SFalse -> traverse
+otraverse p = case srequired p of
+    SRequired -> id
+    SOptional -> traverse
 
 ofmap
-    :: forall req f a b. (SBoolI req, Functor f)
+    :: forall req f a b. (SRequiredI req, Functor f)
     => Proxy req
     -> (a -> b)
     -> f (O req a) -> f (O req b)
-ofmap p = case sbool p of
-    STrue  -> fmap
-    SFalse -> (fmap . fmap)
+ofmap p = case srequired p of
+    SRequired -> fmap
+    SOptional -> (fmap . fmap)
 
 -------------------------------------------------------------------------------
 -- HumanShow
@@ -172,7 +179,7 @@ class LomakeField a where
         -> HtmlT m ()
 
     lomakeFieldValidate
-        :: SBoolI req
+        :: SRequiredI req
         => Proxy a
         -> Proxy req
         -> Text  -- ^ field name
@@ -211,7 +218,7 @@ class LomakeField' a where
         :: a
         -> Doc
 
-instance (LomakeField a, KnownSymbol sym, SBoolI req) => LomakeField' (D sym req a) where
+instance (LomakeField a, KnownSymbol sym, SRequiredI req) => LomakeField' (D sym req a) where
     lomakeFieldView' _ env name = div_ [class_ cls] $ do
         div_ [class_ "large-4 columns"] $ do
             label_ [class_ "text-right middle", for_ $ T.pack name] $ toHtml desc'
@@ -221,17 +228,17 @@ instance (LomakeField a, KnownSymbol sym, SBoolI req) => LomakeField' (D sym req
         proxySym = Proxy :: Proxy sym
         proxyReq = Proxy :: Proxy req
         desc = T.pack (symbolVal proxySym)
-        desc' = if (lowerSBool proxyReq)
+        desc' = if (lowerSRequired proxyReq)
                     then desc <> "*"
                     else desc
         cls = if hasErrors env (T.pack name) then "row error" else "row"
 
     lomakeFieldValidate' name = D <$> (lomakeFieldValidate (Proxy :: Proxy a) (Proxy :: Proxy req)  (T.pack name))
 
-    lomakeFieldPretty' x = case sbool (Proxy :: Proxy req) of
-        STrue -> case x of
+    lomakeFieldPretty' x = case srequired (Proxy :: Proxy req) of
+        SRequired -> case x of
             D val -> p val
-        SFalse -> case x of
+        SOptional -> case x of
             D (Just val) -> p val
             D Nothing    -> ""
       where
@@ -340,13 +347,13 @@ validate f (LomakeValidate l) = LomakeValidate $ \p ->
 
 -- | Generalisation of 'requiredText' and 'optionalText'.
 lomakeText
-    :: forall req. (SBoolI req)
+    :: forall req. (SRequiredI req)
     => Proxy req
     -> Text
     -> LomakeValidate (O req Text)
-lomakeText p = case sbool p of
-    STrue  -> requiredText
-    SFalse -> optionalText
+lomakeText p = case srequired p of
+    SRequired -> requiredText
+    SOptional -> optionalText
 
 
 -------------------------------------------------------------------------------
@@ -377,7 +384,7 @@ class LomakeSection' a where
     lomakeSectionForm' :: LomakeValidate a
     lomakeSectionPretty' :: a -> Doc
 
-instance (LomakeSection a, KnownSymbol sym) => LomakeSection' (D sym 'True a) where
+instance (LomakeSection a, KnownSymbol sym) => LomakeSection' (D sym 'Required a) where
     lomakeSectionView' _ env = do
         div_ [class_ "row"] $ div_ [class_ "large-12 columns"] $ do
             h2_ $ fromString $ symbolVal (Proxy :: Proxy sym)
@@ -483,7 +490,7 @@ bool _ f False = f
 -------------------------------------------------------------------------------
 
 enumLomakeFieldValidate
-    :: forall a req. (Enum a, Bounded a, Show a, SBoolI req)
+    :: forall a req. (Enum a, Bounded a, Show a, SRequiredI req)
     => Proxy a
     -> Proxy req
     -> Text

@@ -33,7 +33,7 @@ import Servant
 import Servant.HTML.Lucid
 import Network.Mail.Mime
 import System.Environment     (lookupEnv)
-import System.IO              (hPutStrLn, stderr)
+import System.IO              (hPutStrLn, stderr, stdout)
 import Text.Read              (readMaybe)
 
 import qualified Data.Text                as T
@@ -268,6 +268,7 @@ secondPost _ (LomakeResult _ Nothing) = pure $ ConfirmPage False
 secondPost a (LomakeResult _ (Just ajk)) = do
     liftIO $ do
         hPutStrLn stderr $ "Sending application from " <> T.unpack name <> " to " <> show a
+        hPutStrLn stdout $ TL.unpack body
         bs <- renderMail' mail
         sendmail bs
     pure $ ConfirmPage True

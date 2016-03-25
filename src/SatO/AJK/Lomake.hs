@@ -23,6 +23,7 @@ module SatO.AJK.Lomake (
 
 import Control.Monad.IO.Class (MonadIO (..))
 import Data.FileEmbed         (embedStringFile)
+import Data.Maybe             (fromMaybe)
 import Data.Semigroup         ((<>))
 import Data.Text              (Text)
 import Generics.SOP.TH        (deriveGeneric)
@@ -30,8 +31,13 @@ import Lucid
 import Network.Wai
 import Servant
 import Servant.HTML.Lucid
+import Network.Mail.Mime
+import System.Environment     (lookupEnv)
 import System.IO              (hPutStrLn, stderr)
+import Text.Read              (readMaybe)
 
+import qualified Data.Text                as T
+import qualified Data.Text.Lazy           as TL
 import qualified Network.Wai.Handler.Warp as Warp
 
 import Lomake
@@ -257,11 +263,29 @@ ajkLomakeApi = Proxy
 firstPost :: MonadIO m => LomakeResult AJK -> m IndexPage
 firstPost = return . IndexPage
 
-secondPost :: MonadIO m => LomakeResult AJK -> m ConfirmPage
-secondPost (LomakeResult _ Nothing) = pure $ ConfirmPage False
-secondPost (LomakeResult _ (Just _ajk)) = do
-    -- TODO: send email
+secondPost :: MonadIO m => Address -> LomakeResult AJK -> m ConfirmPage
+secondPost _ (LomakeResult _ Nothing) = pure $ ConfirmPage False
+secondPost a (LomakeResult _ (Just ajk)) = do
+    liftIO $ do
+        hPutStrLn stderr $ "Sending application from " <> T.unpack name <> " to " <> show a
+        bs <- renderMail' mail
+        sendmail bs
     pure $ ConfirmPage True
+  where
+    mail :: Mail
+    mail = simpleMail' a fromAddress "Asuntohakemus" body
+
+    body :: TL.Text
+    body = TL.fromStrict $ T.pack $ render $ lomakePretty ajk
+
+    name :: Text
+    name = unD (personFirstName person) <> " " <> unD (personLastName person)
+      where
+        person :: Person
+        person = unD $ ajkPerson ajk
+
+    fromAddress :: Address
+    fromAddress = Address (Just "AJK-Lomake") "ajk-lomake@satakuntatalo.fi"
 
 actionUrl :: Text
 actionUrl = "/"
@@ -287,16 +311,23 @@ page_ t b = doctypehtml_ $ do
 -- WAI boilerplate
 -------------------------------------------------------------------------------
 
-server :: Server AJKLomakeAPI
-server = pure (IndexPage (LomakeResult emptyLomakeEnv Nothing))
+server :: Address -> Server AJKLomakeAPI
+server a = pure (IndexPage (LomakeResult emptyLomakeEnv Nothing))
     :<|> firstPost
-    :<|> secondPost
+    :<|> secondPost a
 
-app :: Application
-app = serve ajkLomakeApi server
+app :: Address -> Application
+app a = serve ajkLomakeApi (server a)
+
+lookupEnvWithDefault :: Read a => a -> String -> IO a
+lookupEnvWithDefault def v = do
+    x <- lookupEnv v
+    return $ fromMaybe def (x >>= readMaybe)
 
 defaultMain :: IO ()
 defaultMain = do
+    port <- lookupEnvWithDefault 8080 "PORT"
+    emailAddr <- fromMaybe "foo@example.com" <$> lookupEnv "LOMAKE_EMAILADDR"
     hPutStrLn stderr "Hello, ajk-lomake-api is alive"
     hPutStrLn stderr "Starting web server"
-    Warp.run 8080 app
+    Warp.run port (app $ Address Nothing $ T.pack emailAddr)

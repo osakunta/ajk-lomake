@@ -1,6 +1,8 @@
-resolver: lts-5.5
+resolver: lts-5.9
 packages:
 - '.'
 extra-deps:
-- servant-lucid-0.4.4.6
+- servant-0.5
+- servant-server-0.5
+- servant-lucid-0.5
 flags: {}

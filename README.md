@@ -15,3 +15,10 @@ autorestart=true
 user=daemon
 environment=PORT="8080",LOMAKE_EMAILADDR="foo@example.com",LOMAKE_ACTIONURL="/ajk-lomake"
 ```
+
+## `apache.conf`
+
+```xml
+ProxyPass        /ajk-lomake http://localhost:8080
+ProxyPassReverse /ajk-lomake http://localhost:8080
+```

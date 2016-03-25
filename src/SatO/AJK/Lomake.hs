@@ -54,83 +54,83 @@ data Parents = BothAlive | OneAlive | Dead | YH
 newtype LongText = LongText Text
 
 data Person = Person
-    { personFirstName  :: D "Etunimet (puhuttelunimi ensin)"  'True  Text
-    , personLastName   :: D "Sukunimet"                       'True  Text
-    , personBirthday   :: D "Syntymäaika"                     'True  Text
-    , personBirthplace :: D "Syntymäpaikka"                   'True  Text
-    , personAddress    :: D "Postiosoite"                     'True  Text
-    , personSivilis    :: D "Siviilisääty"                    'True  Siv
-    , personEmail      :: D "Sähköpostiosoite"                'True  Text
-    , personChildren   :: D "Alaikäiset lapset (syntymäajat)" 'False Text
-    , personFacebook   :: D "Kotisivu tai sivu facebookissa"  'False Text
+    { personFirstName  :: D "Etunimet (puhuttelunimi ensin)"  'Required Text
+    , personLastName   :: D "Sukunimet"                       'Required Text
+    , personBirthday   :: D "Syntymäaika"                     'Required Text
+    , personBirthplace :: D "Syntymäpaikka"                   'Required Text
+    , personAddress    :: D "Postiosoite"                     'Required Text
+    , personSivilis    :: D "Siviilisääty"                    'Required Siv
+    , personEmail      :: D "Sähköpostiosoite"                'Required Text
+    , personChildren   :: D "Alaikäiset lapset (syntymäajat)" 'Optional Text
+    , personFacebook   :: D "Kotisivu tai sivu facebookissa"  'Optional Text
     }
 
 data Studies = Studies
-    { studiesYO        :: D "Ylioppilastutkinnon suoritusvuosi" 'True  Text
-    , studiesLukio     :: D "Lukio"                             'True  Text
-    , studiesYliopisto :: D "Yliopisto"                         'True  Text
-    , studiesTDK       :: D "Tiedekunta ja koulutusohjelma"     'True  Text
-    , studiesTime      :: D "Opintojen alku-/päätösaika"        'True  Text
-    , studiesUsed      :: D "Suoritettava tutkinto"             'False Text
-    , studiesDone      :: D "Suoritetut korkeakoulututkinnot"   'False Text
+    { studiesYO        :: D "Ylioppilastutkinnon suoritusvuosi" 'Required Text
+    , studiesLukio     :: D "Lukio"                             'Required Text
+    , studiesYliopisto :: D "Yliopisto"                         'Required Text
+    , studiesTDK       :: D "Tiedekunta ja koulutusohjelma"     'Required Text
+    , studiesTime      :: D "Opintojen alku-/päätösaika"        'Required Text
+    , studiesUsed      :: D "Suoritettava tutkinto"             'Optional Text
+    , studiesDone      :: D "Suoritetut korkeakoulututkinnot"   'Optional Text
     }
 
 data Talous = Talous
-    { talousTulo        :: D "Verotettava tulo vuonna 2014"                                     'True  Text
-    , talousVar         :: D "Verotettava varallisuus vuonna 2014"                              'True  Text
-    , talousBrutto      :: D "Bruttotulot vuodelta 2014"                                        'True  Text
-    , talousArvio       :: D "Arvio bruttotuloista vuonna 2015"                                 'True  Text
-    , talousLaatu       :: D "Tulon laatu 2015 (ansio-, eläke-, pääoma-, vuokra- tai muu tulo)" 'True  Text
-    , talousEmployer    :: D "Työnantaja vuonna 2015"                                           'False Text
-    , talousPuolisoTulo :: D "Arvio puolison bruttotuloista vuonna 2015"                        'False Text
-    , talousPuolisoJob  :: D "Puolison ammatti"                                                 'False Text
-    , talousApuraha     :: D "Apurahat vuosina 2012-2015 (myöntäjä ja määrä)"                   'False Text
+    { talousTulo        :: D "Verotettava tulo vuonna 2014"                                     'Required Text
+    , talousVar         :: D "Verotettava varallisuus vuonna 2014"                              'Required Text
+    , talousBrutto      :: D "Bruttotulot vuodelta 2014"                                        'Required Text
+    , talousArvio       :: D "Arvio bruttotuloista vuonna 2015"                                 'Required Text
+    , talousLaatu       :: D "Tulon laatu 2015 (ansio-, eläke-, pääoma-, vuokra- tai muu tulo)" 'Required Text
+    , talousEmployer    :: D "Työnantaja vuonna 2015"                                           'Optional Text
+    , talousPuolisoTulo :: D "Arvio puolison bruttotuloista vuonna 2015"                        'Optional Text
+    , talousPuolisoJob  :: D "Puolison ammatti"                                                 'Optional Text
+    , talousApuraha     :: D "Apurahat vuosina 2012-2015 (myöntäjä ja määrä)"                   'Optional Text
     }
 
 data Family = Family
-    { familyParents          :: D "Vanhemmista"                                                     'True  Parents
-    , familyAlaSisar         :: D "Alaikäisten sisarusten lukumäärä"                                'False Text
-    , familyDadJob           :: D "Isän ammatti"                                                    'False Text
-    , familyMomJob           :: D "Äidin ammatti"                                                   'False Text
-    , familyStudySisar       :: D "Opiskelevien täysi-ikäisten sisarusten lukumäärä"                'False Text
-    , familySisarNames       :: D "Sisarusten etunimet"                                             'False Text
-    , familyHkiAppartment    :: D "Omistatko tai omistavatko vanhempasi asunnon Helsingin seudulla" 'True  Bool
-    , familuHkiAppartmentUse :: D "Onko asunto perheen omassa käytössä"                             'False Bool
+    { familyParents          :: D "Vanhemmista"                                                     'Required Parents
+    , familyAlaSisar         :: D "Alaikäisten sisarusten lukumäärä"                                'Optional Text
+    , familyDadJob           :: D "Isän ammatti"                                                    'Optional Text
+    , familyMomJob           :: D "Äidin ammatti"                                                   'Optional Text
+    , familyStudySisar       :: D "Opiskelevien täysi-ikäisten sisarusten lukumäärä"                'Optional Text
+    , familySisarNames       :: D "Sisarusten etunimet"                                             'Optional Text
+    , familyHkiAppartment    :: D "Omistatko tai omistavatko vanhempasi asunnon Helsingin seudulla" 'Required Bool
+    , familuHkiAppartmentUse :: D "Onko asunto perheen omassa käytössä"                             'Optional Bool
     }
 
 data Satakunta = Satakunta
-    { satakuntaSiteet  :: D "Siteeni Satakuntaan (omin sanoin)"                                       'True LongText
-    , satakuntaFrom    :: D "Hakija on syntynyt, opiskellut tai asunut Satakunnassa"                  'True Bool
-    , satakuntaParents :: D "Hakijan vanhemmista jompikumpi on kuulunut Satakuntalaiseen osakuntaan" 'True Bool
-    , satakuntaTiedots :: D "Hakijan tietoja saa käyttää Satakuntalaisen Osakunnan tiedotukseen"      'True Bool
+    { satakuntaSiteet  :: D "Siteeni Satakuntaan (omin sanoin)"                                       'Required LongText
+    , satakuntaFrom    :: D "Hakija on syntynyt, opiskellut tai asunut Satakunnassa"                  'Required Bool
+    , satakuntaParents :: D "Hakijan vanhemmista jompikumpi on kuulunut Satakuntalaiseen osakuntaan"  'Required Bool
+    , satakuntaTiedots :: D "Hakijan tietoja saa käyttää Satakuntalaisen Osakunnan tiedotukseen"      'Required Bool
     }
 
 data Osakunta = Osakunta
-    { osakuntaKirja :: D "Osakuntaan kirjoittautumisen lukukausi ja vuosi" 'True  Text
-    , osakuntaJasen :: D "Hakija on Satakuntalaisen osakunnan"             'False Jasen
+    { osakuntaKirja :: D "Osakuntaan kirjoittautumisen lukukausi ja vuosi" 'Required Text
+    , osakuntaJasen :: D "Hakija on Satakuntalaisen osakunnan"             'Optional Jasen
     }
 
 data OtherInfo = OtherInfo
-    { otherInfoWhen :: D "Milloin voin vastaanottaa asunnon" 'True Text
+    { otherInfoWhen :: D "Milloin voin vastaanottaa asunnon" 'Required Text
     }
 
 data Overall = Overall
-    { overallHobbies   :: D "Viisi tärkeintä harrastustani"                                          'False LongText
-    , overallLuottamus :: D "Luottamustoimeni ja muu toimintani järjestöissä ja/tai yhdistyksissä"   'False LongText
-    , overallBio       :: D "Luonnehdi halutessasi itseäsi (max 30 sanaa)"                           'False LongText
-    , overallWhyYO     :: D "Miksi pyrit korkeakouluun opiskelemaan/miksi opiskelet korkeakoulussa"  'False LongText
-    , overallWhyYou    :: D "Miksi juuri sinun pitäisi päästä asumaan Satalinnan Säätiön asuntoihin" 'False LongText
+    { overallHobbies   :: D "Viisi tärkeintä harrastustani"                                          'Optional LongText
+    , overallLuottamus :: D "Luottamustoimeni ja muu toimintani järjestöissä ja/tai yhdistyksissä"   'Optional LongText
+    , overallBio       :: D "Luonnehdi halutessasi itseäsi (max 30 sanaa)"                           'Optional LongText
+    , overallWhyYO     :: D "Miksi pyrit korkeakouluun opiskelemaan/miksi opiskelet korkeakoulussa"  'Optional LongText
+    , overallWhyYou    :: D "Miksi juuri sinun pitäisi päästä asumaan Satalinnan Säätiön asuntoihin" 'Optional LongText
     }
 
 data AJK = AJK
-    { ajkPerson    :: D "Henkilötiedot"                   'True Person
-    , ajkStudies   :: D "Opinnot"                         'True Studies
-    , ajkTalous    :: D "Taloudellinen asema"             'True Talous
-    , ajkFamily    :: D "Perhesuhteet"                    'True Family
-    , ajkSatakunta :: D "Yhteydet Satakuntaan"            'True Satakunta
-    , ajkOsakunta  :: D "Ei koske opiskelunsa aloittavia" 'True Osakunta
-    , ajkOtherInfo :: D "Muita tietoja"                   'True OtherInfo
-    , ajkOverall   :: D "Yleistietoja"                    'True Overall
+    { ajkPerson    :: D "Henkilötiedot"                   'Required Person
+    , ajkStudies   :: D "Opinnot"                         'Required Studies
+    , ajkTalous    :: D "Taloudellinen asema"             'Required Talous
+    , ajkFamily    :: D "Perhesuhteet"                    'Required Family
+    , ajkSatakunta :: D "Yhteydet Satakuntaan"            'Required Satakunta
+    , ajkOsakunta  :: D "Ei koske opiskelunsa aloittavia" 'Required Osakunta
+    , ajkOtherInfo :: D "Muita tietoja"                   'Required OtherInfo
+    , ajkOverall   :: D "Yleistietoja"                    'Required Overall
     }
 
 deriveGeneric ''Person

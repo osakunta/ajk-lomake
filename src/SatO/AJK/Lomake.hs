@@ -219,8 +219,18 @@ instance LomakeField LongText where
 -- API
 -------------------------------------------------------------------------------
 
-newtype IndexPage = IndexPage (LomakeResult AJK)
+type ActionUrl = Text 
+
+data IndexPage = IndexPage
+    { _indexPageActionUrl :: !ActionUrl
+    , _indexPageAjk       :: !(LomakeResult AJK)
+    }
 newtype ConfirmPage = ConfirmPage Bool -- Error
+
+data Ctx = Ctx
+    { _ctxActionUrl :: !ActionUrl
+    , _ctxToAddress :: !Address
+    }
 
 type AJKLomakeAPI =
     Get '[HTML] IndexPage
@@ -228,7 +238,7 @@ type AJKLomakeAPI =
     :<|> "send" :> ReqBody '[FormUrlEncoded] (LomakeResult AJK) :> Post '[HTML] ConfirmPage
 
 instance ToHtml IndexPage where
-    toHtml (IndexPage (LomakeResult env v)) = page_ "Hakulomake Satalinnan Säätion vuokraamiin huoneistoihin" $ do
+    toHtml (IndexPage actionUrl (LomakeResult env v)) = page_ "Hakulomake Satalinnan Säätion vuokraamiin huoneistoihin" $ do
         case v of
             Nothing -> do
                 form_ [action_ actionUrl, method_ "POST"] $ do
@@ -260,12 +270,12 @@ instance ToHtml ConfirmPage where
 ajkLomakeApi :: Proxy AJKLomakeAPI
 ajkLomakeApi = Proxy
 
-firstPost :: MonadIO m => LomakeResult AJK -> m IndexPage
-firstPost = return . IndexPage
+firstPost :: MonadIO m => Ctx -> LomakeResult AJK -> m IndexPage
+firstPost (Ctx actionUrl _) = return . IndexPage actionUrl
 
-secondPost :: MonadIO m => Address -> LomakeResult AJK -> m ConfirmPage
-secondPost _ (LomakeResult _ Nothing) = pure $ ConfirmPage False
-secondPost a (LomakeResult _ (Just ajk)) = do
+secondPost :: MonadIO m => Ctx -> LomakeResult AJK -> m ConfirmPage
+secondPost _         (LomakeResult _ Nothing) = pure $ ConfirmPage False
+secondPost (Ctx _ a) (LomakeResult _ (Just ajk)) = do
     liftIO $ do
         hPutStrLn stderr $ "Sending application from " <> T.unpack name <> " to " <> show a
         hPutStrLn stdout $ TL.unpack body
@@ -288,9 +298,6 @@ secondPost a (LomakeResult _ (Just ajk)) = do
     fromAddress :: Address
     fromAddress = Address (Just "AJK-Lomake") "ajk-lomake@satakuntatalo.fi"
 
-actionUrl :: Text
-actionUrl = "/"
-
 -------------------------------------------------------------------------------
 -- HTML stuff
 -------------------------------------------------------------------------------
@@ -312,13 +319,13 @@ page_ t b = doctypehtml_ $ do
 -- WAI boilerplate
 -------------------------------------------------------------------------------
 
-server :: Address -> Server AJKLomakeAPI
-server a = pure (IndexPage (LomakeResult emptyLomakeEnv Nothing))
-    :<|> firstPost
-    :<|> secondPost a
+server :: Ctx -> Server AJKLomakeAPI
+server ctx@(Ctx actionUrl _) = pure (IndexPage actionUrl (LomakeResult emptyLomakeEnv Nothing))
+    :<|> firstPost ctx
+    :<|> secondPost ctx
 
-app :: Address -> Application
-app a = serve ajkLomakeApi (server a)
+app :: Ctx -> Application
+app ctx = serve ajkLomakeApi (server ctx)
 
 lookupEnvWithDefault :: Read a => a -> String -> IO a
 lookupEnvWithDefault def v = do
@@ -329,6 +336,8 @@ defaultMain :: IO ()
 defaultMain = do
     port <- lookupEnvWithDefault 8080 "PORT"
     emailAddr <- fromMaybe "foo@example.com" <$> lookupEnv "LOMAKE_EMAILADDR"
+    actionUrl <- fromMaybe "/"               <$> lookupEnv "LOMAKE_ACTIONURL"
+    let ctx = Ctx (T.pack actionUrl) (Address Nothing $ T.pack emailAddr)
     hPutStrLn stderr "Hello, ajk-lomake-api is alive"
     hPutStrLn stderr "Starting web server"
-    Warp.run port (app $ Address Nothing $ T.pack emailAddr)
+    Warp.run port (app ctx)

@@ -284,10 +284,13 @@ secondPost (Ctx _ a) (LomakeResult _ (Just ajk)) = do
     pure $ ConfirmPage True
   where
     mail :: Mail
-    mail = simpleMail' a fromAddress "Asuntohakemus" body
+    mail = simpleMail' a fromAddress subject body
 
     body :: TL.Text
     body = TL.fromStrict $ T.pack $ render $ lomakePretty ajk
+
+    subject :: Text
+    subject = "Asuntohakemus " <> name
 
     name :: Text
     name = unD (personFirstName person) <> " " <> unD (personLastName person)

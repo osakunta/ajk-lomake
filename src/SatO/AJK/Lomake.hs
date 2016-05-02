@@ -54,7 +54,8 @@ data Parents = BothAlive | OneAlive | Dead | YH
 newtype LongText = LongText Text
 
 data Person = Person
-    { personFirstName  :: D "Etunimet (puhuttelunimi ensin)"  'Required Text
+    { personFirstName  :: D "Etunimet"                        'Required Text
+    , personCallName   :: D "Puhuttelunimi"                   'Optional Text
     , personLastName   :: D "Sukunimet"                       'Required Text
     , personBirthday   :: D "Syntymäaika"                     'Required Text
     , personBirthplace :: D "Syntymäpaikka"                   'Required Text

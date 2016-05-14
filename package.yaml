@@ -29,6 +29,7 @@ library:
     - generics-sop
     - http-client
     - http-client-tls
+    - http-types
     - lens
     - lucid
     - markdown

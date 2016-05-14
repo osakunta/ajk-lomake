@@ -21,20 +21,24 @@ module SatO.AJK.Lomake (
     IndexPage(..),
     ) where
 
-import Control.Monad.IO.Class (MonadIO (..))
-import Data.FileEmbed         (embedStringFile)
-import Data.Maybe             (fromMaybe)
-import Data.Semigroup         ((<>))
-import Data.Text              (Text)
-import Generics.SOP.TH        (deriveGeneric)
+import Control.Exception         (SomeException)
+import Control.Monad.IO.Class    (MonadIO (..))
+import Data.FileEmbed            (embedStringFile)
+import Data.Function             ((&))
+import Data.Maybe                (fromMaybe)
+import Data.Semigroup            ((<>))
+import Data.String               (fromString)
+import Data.Text                 (Text)
+import Generics.SOP.TH           (deriveGeneric)
 import Lucid
+import Network.HTTP.Types.Status (status500)
+import Network.Mail.Mime
 import Network.Wai
 import Servant
 import Servant.HTML.Lucid
-import Network.Mail.Mime
-import System.Environment     (lookupEnv)
-import System.IO              (hPutStrLn, stderr, stdout)
-import Text.Read              (readMaybe)
+import System.Environment        (lookupEnv)
+import System.IO                 (hPutStrLn, stderr, stdout)
+import Text.Read                 (readMaybe)
 
 import qualified Data.Text                as T
 import qualified Data.Text.Lazy           as TL
@@ -220,7 +224,7 @@ instance LomakeField LongText where
 -- API
 -------------------------------------------------------------------------------
 
-type ActionUrl = Text 
+type ActionUrl = Text
 
 data IndexPage = IndexPage
     { _indexPageActionUrl :: !ActionUrl
@@ -316,8 +320,7 @@ page_ t b = doctypehtml_ $ do
         meta_ [httpEquiv_ "x-ua-compatible", content_"ie=edge"]
         style_ [type_ "text/css"] ($(embedStringFile "foundation-6/css/foundation.min.css") :: String)
         style_ [type_ "text/css"] ($(embedStringFile "style.css") :: String)
-    body_ $ do
-        b
+    body_ b
 
 -------------------------------------------------------------------------------
 -- WAI boilerplate
@@ -344,4 +347,11 @@ defaultMain = do
     let ctx = Ctx (T.pack actionUrl) (Address Nothing $ T.pack emailAddr)
     hPutStrLn stderr "Hello, ajk-lomake-api is alive"
     hPutStrLn stderr "Starting web server"
-    Warp.run port (app ctx)
+    let settings = Warp.defaultSettings
+          & Warp.setPort port
+          & Warp.setOnExceptionResponse onExceptionResponse
+    Warp.runSettings settings (app ctx)
+
+onExceptionResponse :: SomeException -> Response
+onExceptionResponse exc =
+    responseLBS status500 [] $ fromString $ "Exception: " ++  show exc

@@ -1,4 +1,4 @@
--- This file has been generated from package.yaml by hpack version 0.11.2.
+-- This file has been generated from package.yaml by hpack version 0.14.0.
 --
 -- see: https://github.com/sol/hpack
 
@@ -42,6 +42,7 @@ library
     , generics-sop
     , http-client
     , http-client-tls
+    , http-types
     , lens
     , lucid
     , markdown

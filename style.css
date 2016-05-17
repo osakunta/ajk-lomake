@@ -3,4 +3,7 @@ h2 { font-size: 20pt; }
 input { font-size: 14pt; }
 
 .error input[type="text"] { border-color: #c00; }
+.error textarea { border-color: #c00; }
 .error label { color: #c00;  }
+
+textarea { height: 10em; }

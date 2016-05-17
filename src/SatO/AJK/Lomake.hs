@@ -239,10 +239,11 @@ data Ctx = Ctx
 
 type AJKLomakeAPI =
     Get '[HTML] IndexPage
-    :<|> ReqBody '[FormUrlEncoded] (LomakeResult AJK) :> Post '[HTML] IndexPage
-    :<|> "send" :> ReqBody '[FormUrlEncoded] (LomakeResult AJK) :> Post '[HTML] ConfirmPage
+    :<|> "ajk-lomake" :> ReqBody '[FormUrlEncoded] (LomakeResult AJK) :> Post '[HTML] IndexPage
+    :<|> "ajk-lomake" :> "send" :> ReqBody '[FormUrlEncoded] (LomakeResult AJK) :> Post '[HTML] ConfirmPage
 
 instance ToHtml IndexPage where
+    toHtmlRaw _ = pure ()
     toHtml (IndexPage actionUrl (LomakeResult env v)) = page_ "Hakulomake Satalinnan Säätion vuokraamiin huoneistoihin" $ do
         case v of
             Nothing -> do
@@ -262,15 +263,14 @@ instance ToHtml IndexPage where
                     hiddenForm env
                     div_ [class_ "row"] $ div_ [class_ "large-12 columns"] $ do
                         input_ [class_ "medium success button", type_ "submit", value_ "Lähetä"]
-    toHtmlRaw _ = pure ()
 
 instance ToHtml ConfirmPage where
+    toHtmlRaw _ = pure ()
     toHtml (ConfirmPage sent) = page_ "Asuntohaku Satalinnan säätiön aesuntoihin" $ do
         div_ [class_ "row"] $ div_ [class_ "large-12 columns"] $ do
             case sent of
                 True  -> div_ $ "Kiitos hakemuksestasi!"
                 False -> div_ $ "Virhe! Jotain odottamatonta tapahtui. Kokeile hetken päästä uudestaan."
-    toHtmlRaw _ = pure ()
 
 ajkLomakeApi :: Proxy AJKLomakeAPI
 ajkLomakeApi = Proxy
@@ -343,7 +343,7 @@ defaultMain :: IO ()
 defaultMain = do
     port <- lookupEnvWithDefault 8080 "PORT"
     emailAddr <- fromMaybe "foo@example.com" <$> lookupEnv "LOMAKE_EMAILADDR"
-    actionUrl <- fromMaybe "/"               <$> lookupEnv "LOMAKE_ACTIONURL"
+    actionUrl <- fromMaybe "/action-url/"    <$> lookupEnv "LOMAKE_ACTIONURL"
     let ctx = Ctx (T.pack actionUrl) (Address Nothing $ T.pack emailAddr)
     hPutStrLn stderr "Hello, ajk-lomake-api is alive"
     hPutStrLn stderr "Starting web server"

@@ -1,23 +1,16 @@
+{-# LANGUAGE ConstraintKinds     #-}
 {-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE FlexibleInstances   #-}
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE RankNTypes          #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeOperators       #-}
 {-# LANGUAGE TemplateHaskell     #-}
+{-# LANGUAGE TypeFamilies        #-}
+{-# LANGUAGE TypeOperators       #-}
 module SatO.AJK.Lomake (
     defaultMain,
-    Person(..),
-    Studies(..),
-    Talous(..),
-    Family(..),
-    Satakunta(..),
-    Osakunta(..),
-    OtherInfo(..),
-    Overall(..),
-    AJK(..),
-    IndexPage(..),
+    Page(..),
     ) where
 
 import Control.Exception         (SomeException)
@@ -28,6 +21,7 @@ import Data.Maybe                (fromMaybe)
 import Data.Semigroup            ((<>))
 import Data.String               (fromString)
 import Data.Text                 (Text)
+import GHC.TypeLits              (KnownSymbol, Symbol, symbolVal)
 import Lucid
 import Network.HTTP.Types.Status (status500)
 import Network.Mail.Mime
@@ -53,91 +47,89 @@ import SatO.AJK.Lomake.Sisanen
 
 type ActionUrl = Text
 
-data IndexPage = IndexPage
-    { _indexPageActionUrl :: !ActionUrl
-    , _indexPageAjk       :: !(LomakeResult AJK)
+-- | TODO: the url
+data Page a = Page
+    { _pageActionUrl :: !ActionUrl
+    , _pageResult    :: !(LomakeResult a)
     }
-newtype ConfirmPage = ConfirmPage Bool -- Error
 
-data SisanenPage = SisanenPage
-    { _sisPageActionUrl :: !ActionUrl
-    , _sisPageAjk       :: !(LomakeResult Sisanen)
-    }
+class KnownSymbol (LomakeShortName a) => LomakeName a where
+    type LomakeShortName a :: Symbol
+    lomakeTitle :: Proxy a -> Text
+
+    lomakeShortName :: Proxy a -> Text
+    lomakeShortName _ = T.pack $ symbolVal (Proxy :: Proxy (LomakeShortName a))
+
+instance LomakeName AJK where
+    type LomakeShortName AJK = "ajk-lomake"
+    lomakeTitle _ = "Hakulomake Satalinnan Säätion vuokraamiin huoneistoihin"
+
+instance LomakeName Sisanen where
+    type LomakeShortName Sisanen = "sisanen-haku"
+    lomakeTitle _ = "Satalinnan Säätion sisäinen asuntohaku"
+
+newtype ConfirmPage a = ConfirmPage Bool -- Error
 
 data Ctx = Ctx
     { _ctxActionUrl :: !ActionUrl
     , _ctxToAddress :: !Address
     }
 
+-- | TODO: uncopypaste
+
+type FormAPI a = LomakeShortName a :>
+    ( Get '[HTML] (Page a)
+    :<|> ReqBody '[FormUrlEncoded] (LomakeResult a) :> Post '[HTML] (Page a)
+    :<|> "send" :> ReqBody '[FormUrlEncoded] (LomakeResult a) :> Post '[HTML] (ConfirmPage a)
+    )
+
 type AJKLomakeAPI =
-    "ajk-lomake" :> Get '[HTML] IndexPage
-    :<|> "ajk-lomake" :> ReqBody '[FormUrlEncoded] (LomakeResult AJK) :> Post '[HTML] IndexPage
-    :<|> "ajk-lomake" :> "send" :> ReqBody '[FormUrlEncoded] (LomakeResult AJK) :> Post '[HTML] ConfirmPage
-    :<|> "sisanen-haku" :> Get '[HTML] SisanenPage
-    :<|> "sisanen-haku" :> ReqBody '[FormUrlEncoded] (LomakeResult Sisanen) :> Post '[HTML] SisanenPage
+    FormAPI AJK :<|> FormAPI Sisanen
 
-instance ToHtml IndexPage where
+instance (LomakeForm a, LomakeName a) => ToHtml (Page a) where
     toHtmlRaw _ = pure ()
-    toHtml (IndexPage actionUrl (LomakeResult env v)) = page_ "Hakulomake Satalinnan Säätion vuokraamiin huoneistoihin" $ do
+    toHtml (Page actionUrl (LomakeResult env v)) = page_ t$ do
         case v of
             Nothing -> do
-                form_ [action_ actionUrl, method_ "POST"] $ do
+                form_ [action_ $ actionUrl <> lomakeShortName p <> "/" , method_ "POST"] $ do
                     div_ [class_ "row"] $ div_ [class_ "large-12 columns"] $ do
-                        h1_ $ "Hakulomake Satalinnan Säätion vuokraamiin huoneistoihin"
-                    lomakeView (Proxy :: Proxy AJK) env
+                        h1_ $ toHtml t
+                    lomakeView p env
                     div_ [class_ "row"] $ div_ [class_ "large-12 columns"] $ do
                         input_ [class_ "medium success button", type_ "submit", value_ "Esikatsele"]
             Just ajk -> do
+                div_ [class_ "row"] $ div_ [class_ "large-12 columns"] $ do
+                    h1_ $ toHtml t
                 div_ [class_ "row"] $ div_ [class_ "large-12 columns"] $ do
                     h2_ $ "Tarkista tietosi vielä kerran:"
                 div_ [class_ "row"] $ div_ [class_ "large-12 columns"] $ do
                     pre_ $ toHtml $ render $ lomakePretty ajk
                 hr_ []
-                form_ [action_ $ actionUrl <> "send", method_ "POST"] $ do
+                form_ [action_ $ actionUrl <> lomakeShortName p <> "/send", method_ "POST"] $ do
                     hiddenForm env
                     div_ [class_ "row"] $ div_ [class_ "large-12 columns"] $ do
                         input_ [class_ "medium success button", type_ "submit", value_ "Lähetä"]
+      where
+        p = Proxy :: Proxy a
+        t = lomakeTitle p
 
-instance ToHtml SisanenPage where
+instance LomakeName a => ToHtml (ConfirmPage a) where
     toHtmlRaw _ = pure ()
-    toHtml (SisanenPage actionUrl (LomakeResult env v)) = page_ "Hakulomake Satalinnan Säätion vuokraamiin huoneistoihin" $ do
-        case v of
-            Nothing -> do
-                form_ [action_ $ actionUrl <> "sisanen-haku", method_ "POST"] $ do
-                    div_ [class_ "row"] $ div_ [class_ "large-12 columns"] $ do
-                        h1_ $ "Hakulomake Satalinnan Säätion vuokraamiin huoneistoihin"
-                    lomakeView (Proxy :: Proxy Sisanen) env
-                    div_ [class_ "row"] $ div_ [class_ "large-12 columns"] $ do
-                        input_ [class_ "medium success button", type_ "submit", value_ "Esikatsele"]
-            Just ajk -> do
-                div_ [class_ "row"] $ div_ [class_ "large-12 columns"] $ do
-                    h2_ $ "Tarkista tietosi vielä kerran:"
-                div_ [class_ "row"] $ div_ [class_ "large-12 columns"] $ do
-                    pre_ $ toHtml $ render $ lomakePretty ajk
-                hr_ []
-                form_ [action_ $ actionUrl <> "send", method_ "POST"] $ do
-                    hiddenForm env
-                    div_ [class_ "row"] $ div_ [class_ "large-12 columns"] $ do
-                        input_ [class_ "medium success button", type_ "submit", value_ "Lähetä"]
-
-instance ToHtml ConfirmPage where
-    toHtmlRaw _ = pure ()
-    toHtml (ConfirmPage sent) = page_ "Asuntohaku Satalinnan säätiön aesuntoihin" $ do
+    toHtml (ConfirmPage sent) = page_ t $ do
         div_ [class_ "row"] $ div_ [class_ "large-12 columns"] $ do
             case sent of
                 True  -> div_ $ "Kiitos hakemuksestasi!"
                 False -> div_ $ "Virhe! Jotain odottamatonta tapahtui. Kokeile hetken päästä uudestaan."
+      where
+        t = lomakeTitle (Proxy :: Proxy a)
 
 ajkLomakeApi :: Proxy AJKLomakeAPI
 ajkLomakeApi = Proxy
 
-firstPost :: MonadIO m => Ctx -> LomakeResult AJK -> m IndexPage
-firstPost (Ctx actionUrl _) = return . IndexPage actionUrl
+firstPost :: MonadIO m => Ctx -> LomakeResult a -> m (Page a)
+firstPost (Ctx actionUrl _) = return . Page actionUrl
 
-firstPostSisanen :: MonadIO m => Ctx -> LomakeResult Sisanen -> m SisanenPage
-firstPostSisanen (Ctx actionUrl _) = return . SisanenPage actionUrl
-
-secondPost :: MonadIO m => Ctx -> LomakeResult AJK -> m ConfirmPage
+secondPost :: (MonadIO m, LomakeForm a) => Ctx -> LomakeResult a -> m (ConfirmPage a)
 secondPost _         (LomakeResult _ Nothing) = pure $ ConfirmPage False
 secondPost (Ctx _ a) (LomakeResult _ (Just ajk)) = do
     liftIO $ do
@@ -157,10 +149,11 @@ secondPost (Ctx _ a) (LomakeResult _ (Just ajk)) = do
     subject = "Asuntohakemus " <> name
 
     name :: Text
-    name = unD (personFirstName person) <> " " <> unD (personLastName person)
+    name = "implement me " {- unD (personFirstName person) <> " " <> unD (personLastName person)
       where
         person :: Person
         person = unD $ ajkPerson ajk
+-}
 
     fromAddress :: Address
     fromAddress = Address (Just "AJK-Lomake") "ajk-lomake@satakuntatalo.fi"
@@ -186,11 +179,13 @@ page_ t b = doctypehtml_ $ do
 -------------------------------------------------------------------------------
 
 server :: Ctx -> Server AJKLomakeAPI
-server ctx@(Ctx actionUrl _) = pure (IndexPage actionUrl (LomakeResult emptyLomakeEnv Nothing))
+server ctx@(Ctx actionUrl _) =
+         (pure (Page actionUrl (LomakeResult emptyLomakeEnv Nothing))
     :<|> firstPost ctx
-    :<|> secondPost ctx
-    :<|> pure (SisanenPage actionUrl (LomakeResult emptyLomakeEnv Nothing))
-    :<|> firstPostSisanen ctx
+    :<|> secondPost ctx)
+    :<|> (pure (Page actionUrl (LomakeResult emptyLomakeEnv Nothing))
+    :<|> firstPost ctx
+    :<|> secondPost ctx)
 
 app :: Ctx -> Application
 app ctx = serve ajkLomakeApi (server ctx)

@@ -45,12 +45,9 @@ import SatO.AJK.Lomake.Sisanen
 -- API
 -------------------------------------------------------------------------------
 
-type ActionUrl = Text
-
 -- | TODO: the url
 data Page a = Page
-    { _pageActionUrl :: !ActionUrl
-    , _pageResult    :: !(LomakeResult a)
+    { _pageResult    :: !(LomakeResult a)
     }
 
 newtype ConfirmPage a = ConfirmPage Bool -- Error
@@ -98,8 +95,7 @@ instance LomakeEmail Sisanen where
 -------------------------------------------------------------------------------
 
 data Ctx = Ctx
-    { _ctxActionUrl :: !ActionUrl
-    , _ctxToAddress :: !Address
+    { _ctxToAddress :: !Address
     }
 
 -- | TODO: uncopypaste
@@ -115,10 +111,10 @@ type AJKLomakeAPI =
 
 instance (LomakeForm a, LomakeName a) => ToHtml (Page a) where
     toHtmlRaw _ = pure ()
-    toHtml (Page actionUrl (LomakeResult env v)) = page_ t$ do
+    toHtml (Page (LomakeResult env v)) = page_ t$ do
         case v of
             Nothing -> do
-                form_ [action_ $ actionUrl <> lomakeShortName p <> "/" , method_ "POST"] $ do
+                form_ [action_ $ "/" <> lomakeShortName p <> "/" , method_ "POST"] $ do
                     div_ [class_ "row"] $ div_ [class_ "large-12 columns"] $ do
                         h1_ $ toHtml t
                     lomakeView p env
@@ -132,7 +128,7 @@ instance (LomakeForm a, LomakeName a) => ToHtml (Page a) where
                 div_ [class_ "row"] $ div_ [class_ "large-12 columns"] $ do
                     pre_ $ toHtml $ render $ lomakePretty ajk
                 hr_ []
-                form_ [action_ $ actionUrl <> lomakeShortName p <> "/send", method_ "POST"] $ do
+                form_ [action_ $ "/" <> lomakeShortName p <> "/send", method_ "POST"] $ do
                     hiddenForm env
                     div_ [class_ "row"] $ div_ [class_ "large-12 columns"] $ do
                         input_ [class_ "medium success button", type_ "submit", value_ "Lähetä"]
@@ -154,11 +150,11 @@ ajkLomakeApi :: Proxy AJKLomakeAPI
 ajkLomakeApi = Proxy
 
 firstPost :: MonadIO m => Ctx -> LomakeResult a -> m (Page a)
-firstPost (Ctx actionUrl _) = return . Page actionUrl
+firstPost _ = return . Page
 
 secondPost :: (MonadIO m, LomakeForm a, LomakeEmail a) => Ctx -> LomakeResult a -> m (ConfirmPage a)
-secondPost _         (LomakeResult _ Nothing) = pure $ ConfirmPage False
-secondPost (Ctx _ a) (LomakeResult _ (Just ajk)) = do
+secondPost _       (LomakeResult _ Nothing) = pure $ ConfirmPage False
+secondPost (Ctx a) (LomakeResult _ (Just ajk)) = do
     liftIO $ do
         hPutStrLn stderr $ "Sending application from " <> T.unpack name <> " to " <> show a
         hPutStrLn stdout $ TL.unpack body
@@ -202,10 +198,10 @@ page_ t b = doctypehtml_ $ do
 -------------------------------------------------------------------------------
 
 formServer :: (LomakeForm a, LomakeEmail a) => Ctx -> Server (FormAPI a)
-formServer ctx@(Ctx actionUrl _) =
-         (pure (Page actionUrl (LomakeResult emptyLomakeEnv Nothing))
+formServer ctx =
+         pure (Page $ LomakeResult emptyLomakeEnv Nothing)
     :<|> firstPost ctx
-    :<|> secondPost ctx)
+    :<|> secondPost ctx
 
 server :: Ctx -> Server AJKLomakeAPI
 server ctx =
@@ -223,8 +219,7 @@ defaultMain :: IO ()
 defaultMain = do
     port <- lookupEnvWithDefault 8080 "PORT"
     emailAddr <- fromMaybe "foo@example.com" <$> lookupEnv "LOMAKE_EMAILADDR"
-    actionUrl <- fromMaybe "/"               <$> lookupEnv "LOMAKE_ACTIONURL"
-    let ctx = Ctx (T.pack actionUrl) (Address Nothing $ T.pack emailAddr)
+    let ctx = Ctx (Address Nothing $ T.pack emailAddr)
     hPutStrLn stderr "Hello, ajk-lomake-api is alive"
     hPutStrLn stderr "Starting web server"
     let settings = Warp.defaultSettings

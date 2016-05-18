@@ -53,6 +53,12 @@ data Page a = Page
     , _pageResult    :: !(LomakeResult a)
     }
 
+newtype ConfirmPage a = ConfirmPage Bool -- Error
+
+-------------------------------------------------------------------------------
+-- LomakeName
+-------------------------------------------------------------------------------
+
 class KnownSymbol (LomakeShortName a) => LomakeName a where
     type LomakeShortName a :: Symbol
     lomakeTitle :: Proxy a -> Text
@@ -68,7 +74,28 @@ instance LomakeName Sisanen where
     type LomakeShortName Sisanen = "sisanen-haku"
     lomakeTitle _ = "Satalinnan Säätion sisäinen asuntohaku"
 
-newtype ConfirmPage a = ConfirmPage Bool -- Error
+-------------------------------------------------------------------------------
+-- LomakeEmail
+-------------------------------------------------------------------------------
+
+class LomakeEmail a where
+    lomakeSender :: a -> Text
+
+instance LomakeEmail AJK where
+    lomakeSender ajk = unD (personFirstName person) <> " " <> unD (personLastName person)
+      where
+        person :: Person
+        person = unD $ ajkPerson ajk
+
+instance LomakeEmail Sisanen where
+    lomakeSender sis = unD (sisFirstName person) <> " " <> unD (sisLastName person)
+      where
+        person :: SisPerson
+        person = unD $ sisPerson sis
+
+-------------------------------------------------------------------------------
+-- Ctx
+-------------------------------------------------------------------------------
 
 data Ctx = Ctx
     { _ctxActionUrl :: !ActionUrl
@@ -129,7 +156,7 @@ ajkLomakeApi = Proxy
 firstPost :: MonadIO m => Ctx -> LomakeResult a -> m (Page a)
 firstPost (Ctx actionUrl _) = return . Page actionUrl
 
-secondPost :: (MonadIO m, LomakeForm a) => Ctx -> LomakeResult a -> m (ConfirmPage a)
+secondPost :: (MonadIO m, LomakeForm a, LomakeEmail a) => Ctx -> LomakeResult a -> m (ConfirmPage a)
 secondPost _         (LomakeResult _ Nothing) = pure $ ConfirmPage False
 secondPost (Ctx _ a) (LomakeResult _ (Just ajk)) = do
     liftIO $ do
@@ -149,11 +176,7 @@ secondPost (Ctx _ a) (LomakeResult _ (Just ajk)) = do
     subject = "Asuntohakemus " <> name
 
     name :: Text
-    name = "implement me " {- unD (personFirstName person) <> " " <> unD (personLastName person)
-      where
-        person :: Person
-        person = unD $ ajkPerson ajk
--}
+    name = lomakeSender ajk
 
     fromAddress :: Address
     fromAddress = Address (Just "AJK-Lomake") "ajk-lomake@satakuntatalo.fi"
@@ -178,14 +201,15 @@ page_ t b = doctypehtml_ $ do
 -- WAI boilerplate
 -------------------------------------------------------------------------------
 
-server :: Ctx -> Server AJKLomakeAPI
-server ctx@(Ctx actionUrl _) =
+formServer :: (LomakeForm a, LomakeEmail a) => Ctx -> Server (FormAPI a)
+formServer ctx@(Ctx actionUrl _) =
          (pure (Page actionUrl (LomakeResult emptyLomakeEnv Nothing))
     :<|> firstPost ctx
     :<|> secondPost ctx)
-    :<|> (pure (Page actionUrl (LomakeResult emptyLomakeEnv Nothing))
-    :<|> firstPost ctx
-    :<|> secondPost ctx)
+
+server :: Ctx -> Server AJKLomakeAPI
+server ctx =
+    formServer ctx :<|> formServer ctx
 
 app :: Ctx -> Application
 app ctx = serve ajkLomakeApi (server ctx)

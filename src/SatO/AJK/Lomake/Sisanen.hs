@@ -1,12 +1,16 @@
-{-# LANGUAGE DataKinds         #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TemplateHaskell   #-}
-{-# LANGUAGE TypeFamilies      #-}
+{-# LANGUAGE DataKinds            #-}
+{-# LANGUAGE FlexibleContexts     #-}
+{-# LANGUAGE OverloadedStrings    #-}
+{-# LANGUAGE TemplateHaskell      #-}
+{-# LANGUAGE TypeFamilies         #-}
+{-# LANGUAGE UndecidableInstances #-}
 module SatO.AJK.Lomake.Sisanen where
 
-import Data.Semigroup  ((<>))
-import Data.Text       (Text)
-import Generics.SOP.TH (deriveGeneric)
+import Data.Reflection   (Given (..))
+import Data.Semigroup    ((<>))
+import Data.Text         (Text)
+import Generics.SOP.TH   (deriveGeneric)
+import Network.Mail.Mime (Address)
 
 import Lomake
 
@@ -57,3 +61,9 @@ instance LomakeEmail Sisanen where
       where
         person :: SisPerson
         person = unD $ sisPerson sis
+
+newtype SisanenAddress = SisanenAddress Address
+
+instance Given SisanenAddress => LomakeAddress Sisanen where
+    lomakeAddress _ = case given of
+        SisanenAddress addr -> addr

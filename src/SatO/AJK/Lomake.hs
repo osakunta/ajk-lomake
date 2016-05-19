@@ -30,6 +30,7 @@ import Servant.HTML.Lucid
 import System.Environment        (lookupEnv)
 import System.IO                 (hPutStrLn, stderr, stdout)
 import Text.Read                 (readMaybe)
+import Data.Reflection   (give)
 
 import qualified Data.Text                as T
 import qualified Data.Text.Lazy           as TL
@@ -51,16 +52,6 @@ data Page a = Page
     }
 
 newtype ConfirmPage a = ConfirmPage Bool -- Error
-
--------------------------------------------------------------------------------
--- Ctx
--------------------------------------------------------------------------------
-
-data Ctx = Ctx
-    { _ctxToAddress :: !Address
-    }
-
--- | TODO: uncopypaste
 
 type FormAPI a = LomakeShortName a :>
     ( Get '[HTML] (Page a)
@@ -111,21 +102,23 @@ instance LomakeName a => ToHtml (ConfirmPage a) where
 ajkLomakeApi :: Proxy AJKLomakeAPI
 ajkLomakeApi = Proxy
 
-firstPost :: MonadIO m => Ctx -> LomakeResult a -> m (Page a)
-firstPost _ = return . Page
+firstPost :: MonadIO m => LomakeResult a -> m (Page a)
+firstPost = return . Page
 
-secondPost :: (MonadIO m, LomakeForm a, LomakeEmail a) => Ctx -> LomakeResult a -> m (ConfirmPage a)
-secondPost _       (LomakeResult _ Nothing) = pure $ ConfirmPage False
-secondPost (Ctx a) (LomakeResult _ (Just ajk)) = do
+secondPost
+    :: forall m a. (MonadIO m, LomakeForm a, LomakeEmail a, LomakeAddress a)
+    => LomakeResult a -> m (ConfirmPage a)
+secondPost (LomakeResult _ Nothing) = pure $ ConfirmPage False
+secondPost (LomakeResult _ (Just ajk)) = do
     liftIO $ do
-        hPutStrLn stderr $ "Sending application from " <> T.unpack name <> " to " <> show a
+        hPutStrLn stderr $ "Sending application from " <> T.unpack name <> " to " <> show toAddress
         hPutStrLn stdout $ TL.unpack body
         bs <- renderMail' mail
         sendmail bs
     pure $ ConfirmPage True
   where
     mail :: Mail
-    mail = simpleMail' a fromAddress subject body
+    mail = simpleMail' toAddress fromAddress subject body
 
     body :: TL.Text
     body = TL.fromStrict $ T.pack $ render $ lomakePretty ajk
@@ -135,6 +128,9 @@ secondPost (Ctx a) (LomakeResult _ (Just ajk)) = do
 
     name :: Text
     name = lomakeSender ajk
+
+    toAddress :: Address
+    toAddress = lomakeAddress (Proxy :: Proxy a)
 
     fromAddress :: Address
     fromAddress = Address (Just "AJK-Lomake") "ajk-lomake@satakuntatalo.fi"
@@ -159,17 +155,21 @@ page_ t b = doctypehtml_ $ do
 -- WAI boilerplate
 -------------------------------------------------------------------------------
 
-formServer :: (LomakeForm a, LomakeEmail a) => Ctx -> Server (FormAPI a)
-formServer ctx =
+formServer :: (LomakeForm a, LomakeEmail a, LomakeAddress a) => Server (FormAPI a)
+formServer =
          pure (Page $ LomakeResult emptyLomakeEnv Nothing)
-    :<|> firstPost ctx
-    :<|> secondPost ctx
+    :<|> firstPost
+    :<|> secondPost
 
-server :: Ctx -> Server AJKLomakeAPI
-server ctx =
-    formServer ctx :<|> formServer ctx
+server :: Address -> Server AJKLomakeAPI
+server addr =
+    give (SisanenAddress addr) $
+    give (AsuntohakuAddress addr) $
+    formServer :<|> formServer
 
-app :: Ctx -> Application
+app
+    :: Address -- ^ AJK Address
+    -> Application
 app ctx = serve ajkLomakeApi (server ctx)
 
 lookupEnvWithDefault :: Read a => a -> String -> IO a
@@ -181,13 +181,13 @@ defaultMain :: IO ()
 defaultMain = do
     port <- lookupEnvWithDefault 8080 "PORT"
     emailAddr <- fromMaybe "foo@example.com" <$> lookupEnv "LOMAKE_EMAILADDR"
-    let ctx = Ctx (Address Nothing $ T.pack emailAddr)
+    let ajkAddress = Address Nothing $ T.pack emailAddr
     hPutStrLn stderr "Hello, ajk-lomake-api is alive"
     hPutStrLn stderr "Starting web server"
     let settings = Warp.defaultSettings
           & Warp.setPort port
           & Warp.setOnExceptionResponse onExceptionResponse
-    Warp.runSettings settings (app ctx)
+    Warp.runSettings settings $ app ajkAddress
 
 onExceptionResponse :: SomeException -> Response
 onExceptionResponse exc =

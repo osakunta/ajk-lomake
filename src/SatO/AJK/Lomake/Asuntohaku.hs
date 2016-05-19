@@ -1,12 +1,16 @@
-{-# LANGUAGE DataKinds         #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TemplateHaskell   #-}
-{-# LANGUAGE TypeFamilies      #-}
+{-# LANGUAGE DataKinds            #-}
+{-# LANGUAGE FlexibleContexts     #-}
+{-# LANGUAGE OverloadedStrings    #-}
+{-# LANGUAGE TemplateHaskell      #-}
+{-# LANGUAGE TypeFamilies         #-}
+{-# LANGUAGE UndecidableInstances #-}
 module SatO.AJK.Lomake.Asuntohaku where
 
-import Data.Semigroup  ((<>))
-import Data.Text       (Text)
-import Generics.SOP.TH (deriveGeneric)
+import Data.Reflection   (Given (..))
+import Data.Semigroup    ((<>))
+import Data.Text         (Text)
+import Generics.SOP.TH   (deriveGeneric)
+import Network.Mail.Mime (Address)
 
 import Lomake
 
@@ -189,3 +193,9 @@ instance LomakeEmail Asuntohaku where
       where
         person :: Person
         person = unD $ ajkPerson ajk
+
+newtype AsuntohakuAddress = AsuntohakuAddress Address
+
+instance Given AsuntohakuAddress => LomakeAddress Asuntohaku where
+    lomakeAddress _ = case given of
+        AsuntohakuAddress addr -> addr

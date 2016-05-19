@@ -49,6 +49,7 @@ library
     , mime-mail
     , mtl
     , pretty
+    , reflection >= 2.1
     , semigroups
     , servant
     , servant-lucid

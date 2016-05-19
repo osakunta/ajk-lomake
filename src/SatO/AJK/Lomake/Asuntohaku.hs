@@ -1,14 +1,16 @@
-{-# LANGUAGE DataKinds           #-}
-{-# LANGUAGE TemplateHaskell     #-}
-{-# LANGUAGE TypeFamilies        #-}
-{-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE DataKinds         #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell   #-}
+{-# LANGUAGE TypeFamilies      #-}
 module SatO.AJK.Lomake.Asuntohaku where
 
-import Data.Text                 (Text)
-import Generics.SOP.TH           (deriveGeneric)
+import Data.Semigroup  ((<>))
+import Data.Text       (Text)
+import Generics.SOP.TH (deriveGeneric)
 
 import Lomake
 
+import SatO.AJK.Lomake.Classes
 import SatO.AJK.Lomake.LongText
 
 data Siv = Naimaton | Aviossa
@@ -174,3 +176,16 @@ instance LomakeField Jasen where
     lomakeFieldValidate = enumLomakeFieldValidate
     lomakeFieldPretty = text . humanShow
 
+-------------------------------------------------------------------------------
+-- Classes
+-------------------------------------------------------------------------------
+
+instance LomakeName Asuntohaku where
+    type LomakeShortName Asuntohaku = "ajk-lomake"
+    lomakeTitle _ = "Hakulomake Satalinnan Säätion vuokraamiin huoneistoihin"
+
+instance LomakeEmail Asuntohaku where
+    lomakeSender ajk = unD (personFirstName person) <> " " <> unD (personLastName person)
+      where
+        person :: Person
+        person = unD $ ajkPerson ajk

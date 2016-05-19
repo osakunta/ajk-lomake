@@ -4,11 +4,13 @@
 {-# LANGUAGE TypeFamilies      #-}
 module SatO.AJK.Lomake.Sisanen where
 
+import Data.Semigroup  ((<>))
 import Data.Text       (Text)
 import Generics.SOP.TH (deriveGeneric)
 
 import Lomake
 
+import SatO.AJK.Lomake.Classes
 import SatO.AJK.Lomake.LongText
 
 data SisPerson = SisPerson
@@ -41,3 +43,17 @@ instance LomakeSection SisPerson
 instance LomakeSection SisAsunto
 
 instance LomakeForm Sisanen
+
+-------------------------------------------------------------------------------
+-- Classes
+-------------------------------------------------------------------------------
+
+instance LomakeName Sisanen where
+    type LomakeShortName Sisanen = "sisanen-haku"
+    lomakeTitle _ = "Satalinnan Säätion sisäinen asuntohaku"
+
+instance LomakeEmail Sisanen where
+    lomakeSender sis = unD (sisFirstName person) <> " " <> unD (sisLastName person)
+      where
+        person :: SisPerson
+        person = unD $ sisPerson sis

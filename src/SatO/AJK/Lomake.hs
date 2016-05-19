@@ -21,7 +21,6 @@ import Data.Maybe                (fromMaybe)
 import Data.Semigroup            ((<>))
 import Data.String               (fromString)
 import Data.Text                 (Text)
-import GHC.TypeLits              (KnownSymbol, Symbol, symbolVal)
 import Lucid
 import Network.HTTP.Types.Status (status500)
 import Network.Mail.Mime
@@ -39,6 +38,7 @@ import qualified Network.Wai.Handler.Warp as Warp
 import Lomake
 
 import SatO.AJK.Lomake.Asuntohaku
+import SatO.AJK.Lomake.Classes
 import SatO.AJK.Lomake.Sisanen
 
 -------------------------------------------------------------------------------
@@ -51,44 +51,6 @@ data Page a = Page
     }
 
 newtype ConfirmPage a = ConfirmPage Bool -- Error
-
--------------------------------------------------------------------------------
--- LomakeName
--------------------------------------------------------------------------------
-
-class KnownSymbol (LomakeShortName a) => LomakeName a where
-    type LomakeShortName a :: Symbol
-    lomakeTitle :: Proxy a -> Text
-
-    lomakeShortName :: Proxy a -> Text
-    lomakeShortName _ = T.pack $ symbolVal (Proxy :: Proxy (LomakeShortName a))
-
-instance LomakeName Asuntohaku where
-    type LomakeShortName Asuntohaku = "ajk-lomake"
-    lomakeTitle _ = "Hakulomake Satalinnan Säätion vuokraamiin huoneistoihin"
-
-instance LomakeName Sisanen where
-    type LomakeShortName Sisanen = "sisanen-haku"
-    lomakeTitle _ = "Satalinnan Säätion sisäinen asuntohaku"
-
--------------------------------------------------------------------------------
--- LomakeEmail
--------------------------------------------------------------------------------
-
-class LomakeEmail a where
-    lomakeSender :: a -> Text
-
-instance LomakeEmail Asuntohaku where
-    lomakeSender ajk = unD (personFirstName person) <> " " <> unD (personLastName person)
-      where
-        person :: Person
-        person = unD $ ajkPerson ajk
-
-instance LomakeEmail Sisanen where
-    lomakeSender sis = unD (sisFirstName person) <> " " <> unD (sisLastName person)
-      where
-        person :: SisPerson
-        person = unD $ sisPerson sis
 
 -------------------------------------------------------------------------------
 -- Ctx

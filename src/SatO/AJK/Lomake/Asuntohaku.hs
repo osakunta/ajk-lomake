@@ -6,11 +6,12 @@
 {-# LANGUAGE UndecidableInstances #-}
 module SatO.AJK.Lomake.Asuntohaku where
 
-import Data.Reflection   (Given (..))
-import Data.Semigroup    ((<>))
-import Data.Text         (Text)
-import Generics.SOP.TH   (deriveGeneric)
-import Network.Mail.Mime (Address)
+import Data.List.NonEmpty (NonEmpty)
+import Data.Reflection    (Given (..))
+import Data.Semigroup     ((<>))
+import Data.Text          (Text)
+import Generics.SOP.TH    (deriveGeneric)
+import Network.Mail.Mime  (Address)
 
 import Lomake
 
@@ -194,7 +195,7 @@ instance LomakeEmail Asuntohaku where
         person :: Person
         person = unD $ ajkPerson ajk
 
-newtype AsuntohakuAddress = AsuntohakuAddress Address
+newtype AsuntohakuAddress = AsuntohakuAddress (NonEmpty Address)
 
 instance Given AsuntohakuAddress => LomakeAddress Asuntohaku where
     lomakeAddress _ = case given of

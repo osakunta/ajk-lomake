@@ -6,11 +6,12 @@
 {-# LANGUAGE UndecidableInstances #-}
 module SatO.AJK.Lomake.Huoltoilmoitus where
 
-import Data.Reflection   (Given (..))
-import Data.Semigroup    ((<>))
-import Data.Text         (Text)
-import Generics.SOP.TH   (deriveGeneric)
-import Network.Mail.Mime (Address)
+import Data.List.NonEmpty (NonEmpty)
+import Data.Reflection    (Given (..))
+import Data.Semigroup     ((<>))
+import Data.Text          (Text)
+import Generics.SOP.TH    (deriveGeneric)
+import Network.Mail.Mime  (Address)
 
 import Lomake
 
@@ -51,7 +52,7 @@ instance LomakeEmail Huoltoilmoitus where
         inner :: Huoltoilmoitus'
         inner = unD $ huoltoInner sis
 
-newtype HuoltoilmoitusAddress = HuoltoilmoitusAddress Address
+newtype HuoltoilmoitusAddress = HuoltoilmoitusAddress (NonEmpty Address)
 
 instance Given HuoltoilmoitusAddress => LomakeAddress Huoltoilmoitus where
     lomakeAddress _ = case given of

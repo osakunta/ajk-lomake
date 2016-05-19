@@ -14,10 +14,13 @@ module SatO.AJK.Lomake (
     ) where
 
 import Control.Exception         (SomeException)
+import Control.Monad             (forM_)
 import Control.Monad.IO.Class    (MonadIO (..))
 import Data.FileEmbed            (embedStringFile)
 import Data.Function             ((&))
+import Data.List.NonEmpty        (NonEmpty)
 import Data.Maybe                (fromMaybe)
+import Data.Reflection           (give)
 import Data.Semigroup            ((<>))
 import Data.String               (fromString)
 import Data.Text                 (Text)
@@ -30,8 +33,8 @@ import Servant.HTML.Lucid
 import System.Environment        (lookupEnv)
 import System.IO                 (hPutStrLn, stderr, stdout)
 import Text.Read                 (readMaybe)
-import Data.Reflection   (give)
 
+import qualified Data.List.NonEmpty       as NE
 import qualified Data.Text                as T
 import qualified Data.Text.Lazy           as TL
 import qualified Network.Wai.Handler.Warp as Warp
@@ -49,7 +52,7 @@ import SatO.AJK.Lomake.Sisanen
 
 -- | TODO: the url
 data Page a = Page
-    { _pageResult    :: !(LomakeResult a)
+    { _pageResult :: !(LomakeResult a)
     }
 
 newtype ConfirmPage a = ConfirmPage Bool -- Error
@@ -111,16 +114,14 @@ secondPost
     => LomakeResult a -> m (ConfirmPage a)
 secondPost (LomakeResult _ Nothing) = pure $ ConfirmPage False
 secondPost (LomakeResult _ (Just ajk)) = do
-    liftIO $ do
+    liftIO $ forM_ toAddresses $ \toAddress -> do
+        let mail = simpleMail' toAddress fromAddress subject body :: Mail
         hPutStrLn stderr $ "Sending application from " <> T.unpack name <> " to " <> show toAddress
         hPutStrLn stdout $ TL.unpack body
         bs <- renderMail' mail
         sendmail bs
     pure $ ConfirmPage True
   where
-    mail :: Mail
-    mail = simpleMail' toAddress fromAddress subject body
-
     body :: TL.Text
     body = TL.fromStrict $ T.pack $ render $ lomakePretty ajk
 
@@ -130,8 +131,8 @@ secondPost (LomakeResult _ (Just ajk)) = do
     name :: Text
     name = lomakeSender ajk
 
-    toAddress :: Address
-    toAddress = lomakeAddress (Proxy :: Proxy a)
+    toAddresses :: NonEmpty Address
+    toAddresses = lomakeAddress (Proxy :: Proxy a)
 
     fromAddress :: Address
     fromAddress = Address (Just "AJK-Lomake") "ajk-lomake@satakuntatalo.fi"
@@ -162,7 +163,7 @@ formServer =
     :<|> firstPost
     :<|> secondPost
 
-server :: Address -> Address -> Server AJKLomakeAPI
+server :: NonEmpty Address -> NonEmpty Address -> Server AJKLomakeAPI
 server addr huoltoAddr =
     give (SisanenAddress addr) $
     give (AsuntohakuAddress addr) $
@@ -170,8 +171,8 @@ server addr huoltoAddr =
     formServer :<|> formServer :<|> formServer
 
 app
-    :: Address -- ^ AJK Address
-    -> Address -- ^ Huolto Address
+    :: NonEmpty Address -- ^ AJK Address
+    -> NonEmpty Address -- ^ Huolto Address
     -> Application
 app addr addrHuolto = serve ajkLomakeApi (server addr addrHuolto)
 
@@ -185,8 +186,8 @@ defaultMain = do
     port <- lookupEnvWithDefault 8080 "PORT"
     emailAddr <- fromMaybe "foo@example.com" <$> lookupEnv "LOMAKE_EMAILADDR"
     huoltoAddr <- fromMaybe "foo@example.com" <$> lookupEnv "LOMAKE_HUOLTO_EMAILADDR"
-    let ajkAddress = Address Nothing $ T.pack emailAddr
-    let huoltoAddress = Address Nothing $ T.pack huoltoAddr
+    let ajkAddress = mkAddr emailAddr
+    let huoltoAddress = mkAddr huoltoAddr
     hPutStrLn stderr "Hello, ajk-lomake-api is alive"
     hPutStrLn stderr "Starting web server"
     let settings = Warp.defaultSettings
@@ -197,3 +198,8 @@ defaultMain = do
 onExceptionResponse :: SomeException -> Response
 onExceptionResponse exc =
     responseLBS status500 [] $ fromString $ "Exception: " ++  show exc
+
+mkAddr :: String -> NonEmpty Address
+mkAddr t = Address Nothing <$> case T.splitOn "," (T.pack t) of
+    []     -> "" NE.:| []
+    (x:xs) -> x NE.:| xs

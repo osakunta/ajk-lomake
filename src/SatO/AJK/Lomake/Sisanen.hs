@@ -6,6 +6,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 module SatO.AJK.Lomake.Sisanen where
 
+import Data.List.NonEmpty (NonEmpty)
 import Data.Reflection   (Given (..))
 import Data.Semigroup    ((<>))
 import Data.Text         (Text)
@@ -62,7 +63,7 @@ instance LomakeEmail Sisanen where
         person :: SisPerson
         person = unD $ sisPerson sis
 
-newtype SisanenAddress = SisanenAddress Address
+newtype SisanenAddress = SisanenAddress (NonEmpty Address)
 
 instance Given SisanenAddress => LomakeAddress Sisanen where
     lomakeAddress _ = case given of

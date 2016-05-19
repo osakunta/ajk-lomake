@@ -40,6 +40,7 @@ import Lomake
 
 import SatO.AJK.Lomake.Asuntohaku
 import SatO.AJK.Lomake.Classes
+import SatO.AJK.Lomake.Huoltoilmoitus
 import SatO.AJK.Lomake.Sisanen
 
 -------------------------------------------------------------------------------
@@ -60,7 +61,7 @@ type FormAPI a = LomakeShortName a :>
     )
 
 type AJKLomakeAPI =
-    FormAPI Asuntohaku :<|> FormAPI Sisanen
+    FormAPI Asuntohaku :<|> FormAPI Sisanen :<|> FormAPI Huoltoilmoitus
 
 instance (LomakeForm a, LomakeName a) => ToHtml (Page a) where
     toHtmlRaw _ = pure ()
@@ -161,16 +162,18 @@ formServer =
     :<|> firstPost
     :<|> secondPost
 
-server :: Address -> Server AJKLomakeAPI
-server addr =
+server :: Address -> Address -> Server AJKLomakeAPI
+server addr huoltoAddr =
     give (SisanenAddress addr) $
     give (AsuntohakuAddress addr) $
-    formServer :<|> formServer
+    give (HuoltoilmoitusAddress huoltoAddr) $
+    formServer :<|> formServer :<|> formServer
 
 app
     :: Address -- ^ AJK Address
+    -> Address -- ^ Huolto Address
     -> Application
-app ctx = serve ajkLomakeApi (server ctx)
+app addr addrHuolto = serve ajkLomakeApi (server addr addrHuolto)
 
 lookupEnvWithDefault :: Read a => a -> String -> IO a
 lookupEnvWithDefault def v = do
@@ -181,13 +184,15 @@ defaultMain :: IO ()
 defaultMain = do
     port <- lookupEnvWithDefault 8080 "PORT"
     emailAddr <- fromMaybe "foo@example.com" <$> lookupEnv "LOMAKE_EMAILADDR"
+    huoltoAddr <- fromMaybe "foo@example.com" <$> lookupEnv "LOMAKE_HUOLTO_EMAILADDR"
     let ajkAddress = Address Nothing $ T.pack emailAddr
+    let huoltoAddress = Address Nothing $ T.pack huoltoAddr
     hPutStrLn stderr "Hello, ajk-lomake-api is alive"
     hPutStrLn stderr "Starting web server"
     let settings = Warp.defaultSettings
           & Warp.setPort port
           & Warp.setOnExceptionResponse onExceptionResponse
-    Warp.runSettings settings $ app ajkAddress
+    Warp.runSettings settings $ app ajkAddress huoltoAddress
 
 onExceptionResponse :: SomeException -> Response
 onExceptionResponse exc =

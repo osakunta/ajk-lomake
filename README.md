@@ -13,7 +13,7 @@ Adding fields to form happens by adding fields to the data types.
 command=/usr/local/bin/ajk-lomake-server
 autorestart=true
 user=daemon
-environment=PORT="8080",LOMAKE_EMAILADDR="foo@example.com",LOMAKE_ACTIONURL="/ajk-lomake"
+environment=PORT="8080",LOMAKE_EMAILADDR="foo@example.com",LOMAKE_HUOLTO_EMAILADDR="huolto@example.com";LANG="en_US.utf8"
 ```
 
 ## `apache.conf`

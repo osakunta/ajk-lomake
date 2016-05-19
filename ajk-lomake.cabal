@@ -68,6 +68,7 @@ library
       SatO.AJK.Lomake
       SatO.AJK.Lomake.Asuntohaku
       SatO.AJK.Lomake.Classes
+      SatO.AJK.Lomake.Huoltoilmoitus
       SatO.AJK.Lomake.LongText
       SatO.AJK.Lomake.Sisanen
   default-language: Haskell2010

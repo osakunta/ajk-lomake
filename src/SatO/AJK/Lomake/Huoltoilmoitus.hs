@@ -20,8 +20,8 @@ import SatO.AJK.Lomake.LongText
 data Huoltoilmoitus' = Huoltoilmoitus'
     { huoltoKohde  :: D "Hioltokohde"           'Required Text
     , huoltoVika   :: D "Vika"                  'Required LongText
-    , huoltoYleis  :: D "Vian saa tulla korjaamaan huoneeseen yleisavaimella päiväsaikaan" 'Required Bool
-      -- ^ Korjaus tapahtuu nopeammin, jos huoltomies saa käydä vapaasti korjaamassa vian. Huoltomiehen puhelinnumero on 050-2861.
+    , huoltoYleis  :: D "Vian saa tulla korjaamaan huoneeseen yleisavaimella päiväsaikaan. Korjaus tapahtuu nopeammin, jos huoltomies saa käydä vapaasti korjaamassa vian." 'Required Bool
+      -- ^ Huoltomiehen puhelinnumero on 050-2861.
     , huoltoSource :: D "Ilmoituksen tekijä"    'Required Text
     , huoltoEmail  :: D "Sähköpostiosoite"      'Required Text
     , huoltoPhone  :: D "Puhelinnumero"         'Required Text

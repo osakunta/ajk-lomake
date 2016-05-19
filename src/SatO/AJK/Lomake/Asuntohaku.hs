@@ -91,7 +91,7 @@ data Overall = Overall
     , overallWhyYou    :: D "Miksi juuri sinun pitäisi päästä asumaan Satalinnan Säätiön asuntoihin" 'Optional LongText
     }
 
-data AJK = AJK
+data Asuntohaku = Asuntohaku
     { ajkPerson    :: D "Henkilötiedot"                   'Required Person
     , ajkStudies   :: D "Opinnot"                         'Required Studies
     , ajkTalous    :: D "Taloudellinen asema"             'Required Talous
@@ -111,7 +111,7 @@ deriveGeneric ''Osakunta
 deriveGeneric ''OtherInfo
 deriveGeneric ''Overall
 
-deriveGeneric ''AJK
+deriveGeneric ''Asuntohaku
 
 -------------------------------------------------------------------------------
 -- Sections
@@ -126,7 +126,7 @@ instance LomakeSection Osakunta
 instance LomakeSection OtherInfo
 instance LomakeSection Overall
 
-instance LomakeForm AJK
+instance LomakeForm Asuntohaku
 
 -------------------------------------------------------------------------------
 -- Siv

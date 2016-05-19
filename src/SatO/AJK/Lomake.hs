@@ -63,8 +63,8 @@ class KnownSymbol (LomakeShortName a) => LomakeName a where
     lomakeShortName :: Proxy a -> Text
     lomakeShortName _ = T.pack $ symbolVal (Proxy :: Proxy (LomakeShortName a))
 
-instance LomakeName AJK where
-    type LomakeShortName AJK = "ajk-lomake"
+instance LomakeName Asuntohaku where
+    type LomakeShortName Asuntohaku = "ajk-lomake"
     lomakeTitle _ = "Hakulomake Satalinnan Säätion vuokraamiin huoneistoihin"
 
 instance LomakeName Sisanen where
@@ -78,7 +78,7 @@ instance LomakeName Sisanen where
 class LomakeEmail a where
     lomakeSender :: a -> Text
 
-instance LomakeEmail AJK where
+instance LomakeEmail Asuntohaku where
     lomakeSender ajk = unD (personFirstName person) <> " " <> unD (personLastName person)
       where
         person :: Person
@@ -107,7 +107,7 @@ type FormAPI a = LomakeShortName a :>
     )
 
 type AJKLomakeAPI =
-    FormAPI AJK :<|> FormAPI Sisanen
+    FormAPI Asuntohaku :<|> FormAPI Sisanen
 
 instance (LomakeForm a, LomakeName a) => ToHtml (Page a) where
     toHtmlRaw _ = pure ()

@@ -21,7 +21,6 @@ import Data.Maybe                (fromMaybe)
 import Data.Semigroup            ((<>))
 import Data.String               (fromString)
 import Data.Text                 (Text)
-import GHC.TypeLits              (KnownSymbol, Symbol, symbolVal)
 import Lucid
 import Network.HTTP.Types.Status (status500)
 import Network.Mail.Mime
@@ -31,6 +30,7 @@ import Servant.HTML.Lucid
 import System.Environment        (lookupEnv)
 import System.IO                 (hPutStrLn, stderr, stdout)
 import Text.Read                 (readMaybe)
+import Data.Reflection   (give)
 
 import qualified Data.Text                as T
 import qualified Data.Text.Lazy           as TL
@@ -39,6 +39,7 @@ import qualified Network.Wai.Handler.Warp as Warp
 import Lomake
 
 import SatO.AJK.Lomake.Asuntohaku
+import SatO.AJK.Lomake.Classes
 import SatO.AJK.Lomake.Sisanen
 
 -------------------------------------------------------------------------------
@@ -52,54 +53,6 @@ data Page a = Page
 
 newtype ConfirmPage a = ConfirmPage Bool -- Error
 
--------------------------------------------------------------------------------
--- LomakeName
--------------------------------------------------------------------------------
-
-class KnownSymbol (LomakeShortName a) => LomakeName a where
-    type LomakeShortName a :: Symbol
-    lomakeTitle :: Proxy a -> Text
-
-    lomakeShortName :: Proxy a -> Text
-    lomakeShortName _ = T.pack $ symbolVal (Proxy :: Proxy (LomakeShortName a))
-
-instance LomakeName AJK where
-    type LomakeShortName AJK = "ajk-lomake"
-    lomakeTitle _ = "Hakulomake Satalinnan Säätion vuokraamiin huoneistoihin"
-
-instance LomakeName Sisanen where
-    type LomakeShortName Sisanen = "sisanen-haku"
-    lomakeTitle _ = "Satalinnan Säätion sisäinen asuntohaku"
-
--------------------------------------------------------------------------------
--- LomakeEmail
--------------------------------------------------------------------------------
-
-class LomakeEmail a where
-    lomakeSender :: a -> Text
-
-instance LomakeEmail AJK where
-    lomakeSender ajk = unD (personFirstName person) <> " " <> unD (personLastName person)
-      where
-        person :: Person
-        person = unD $ ajkPerson ajk
-
-instance LomakeEmail Sisanen where
-    lomakeSender sis = unD (sisFirstName person) <> " " <> unD (sisLastName person)
-      where
-        person :: SisPerson
-        person = unD $ sisPerson sis
-
--------------------------------------------------------------------------------
--- Ctx
--------------------------------------------------------------------------------
-
-data Ctx = Ctx
-    { _ctxToAddress :: !Address
-    }
-
--- | TODO: uncopypaste
-
 type FormAPI a = LomakeShortName a :>
     ( Get '[HTML] (Page a)
     :<|> ReqBody '[FormUrlEncoded] (LomakeResult a) :> Post '[HTML] (Page a)
@@ -107,7 +60,7 @@ type FormAPI a = LomakeShortName a :>
     )
 
 type AJKLomakeAPI =
-    FormAPI AJK :<|> FormAPI Sisanen
+    FormAPI Asuntohaku :<|> FormAPI Sisanen
 
 instance (LomakeForm a, LomakeName a) => ToHtml (Page a) where
     toHtmlRaw _ = pure ()
@@ -149,21 +102,23 @@ instance LomakeName a => ToHtml (ConfirmPage a) where
 ajkLomakeApi :: Proxy AJKLomakeAPI
 ajkLomakeApi = Proxy
 
-firstPost :: MonadIO m => Ctx -> LomakeResult a -> m (Page a)
-firstPost _ = return . Page
+firstPost :: MonadIO m => LomakeResult a -> m (Page a)
+firstPost = return . Page
 
-secondPost :: (MonadIO m, LomakeForm a, LomakeEmail a) => Ctx -> LomakeResult a -> m (ConfirmPage a)
-secondPost _       (LomakeResult _ Nothing) = pure $ ConfirmPage False
-secondPost (Ctx a) (LomakeResult _ (Just ajk)) = do
+secondPost
+    :: forall m a. (MonadIO m, LomakeForm a, LomakeEmail a, LomakeAddress a)
+    => LomakeResult a -> m (ConfirmPage a)
+secondPost (LomakeResult _ Nothing) = pure $ ConfirmPage False
+secondPost (LomakeResult _ (Just ajk)) = do
     liftIO $ do
-        hPutStrLn stderr $ "Sending application from " <> T.unpack name <> " to " <> show a
+        hPutStrLn stderr $ "Sending application from " <> T.unpack name <> " to " <> show toAddress
         hPutStrLn stdout $ TL.unpack body
         bs <- renderMail' mail
         sendmail bs
     pure $ ConfirmPage True
   where
     mail :: Mail
-    mail = simpleMail' a fromAddress subject body
+    mail = simpleMail' toAddress fromAddress subject body
 
     body :: TL.Text
     body = TL.fromStrict $ T.pack $ render $ lomakePretty ajk
@@ -173,6 +128,9 @@ secondPost (Ctx a) (LomakeResult _ (Just ajk)) = do
 
     name :: Text
     name = lomakeSender ajk
+
+    toAddress :: Address
+    toAddress = lomakeAddress (Proxy :: Proxy a)
 
     fromAddress :: Address
     fromAddress = Address (Just "AJK-Lomake") "ajk-lomake@satakuntatalo.fi"
@@ -197,17 +155,21 @@ page_ t b = doctypehtml_ $ do
 -- WAI boilerplate
 -------------------------------------------------------------------------------
 
-formServer :: (LomakeForm a, LomakeEmail a) => Ctx -> Server (FormAPI a)
-formServer ctx =
+formServer :: (LomakeForm a, LomakeEmail a, LomakeAddress a) => Server (FormAPI a)
+formServer =
          pure (Page $ LomakeResult emptyLomakeEnv Nothing)
-    :<|> firstPost ctx
-    :<|> secondPost ctx
+    :<|> firstPost
+    :<|> secondPost
 
-server :: Ctx -> Server AJKLomakeAPI
-server ctx =
-    formServer ctx :<|> formServer ctx
+server :: Address -> Server AJKLomakeAPI
+server addr =
+    give (SisanenAddress addr) $
+    give (AsuntohakuAddress addr) $
+    formServer :<|> formServer
 
-app :: Ctx -> Application
+app
+    :: Address -- ^ AJK Address
+    -> Application
 app ctx = serve ajkLomakeApi (server ctx)
 
 lookupEnvWithDefault :: Read a => a -> String -> IO a
@@ -219,13 +181,13 @@ defaultMain :: IO ()
 defaultMain = do
     port <- lookupEnvWithDefault 8080 "PORT"
     emailAddr <- fromMaybe "foo@example.com" <$> lookupEnv "LOMAKE_EMAILADDR"
-    let ctx = Ctx (Address Nothing $ T.pack emailAddr)
+    let ajkAddress = Address Nothing $ T.pack emailAddr
     hPutStrLn stderr "Hello, ajk-lomake-api is alive"
     hPutStrLn stderr "Starting web server"
     let settings = Warp.defaultSettings
           & Warp.setPort port
           & Warp.setOnExceptionResponse onExceptionResponse
-    Warp.runSettings settings (app ctx)
+    Warp.runSettings settings $ app ajkAddress
 
 onExceptionResponse :: SomeException -> Response
 onExceptionResponse exc =

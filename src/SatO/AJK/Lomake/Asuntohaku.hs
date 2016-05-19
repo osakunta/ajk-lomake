@@ -1,14 +1,20 @@
-{-# LANGUAGE DataKinds           #-}
-{-# LANGUAGE TemplateHaskell     #-}
-{-# LANGUAGE TypeFamilies        #-}
-{-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE DataKinds            #-}
+{-# LANGUAGE FlexibleContexts     #-}
+{-# LANGUAGE OverloadedStrings    #-}
+{-# LANGUAGE TemplateHaskell      #-}
+{-# LANGUAGE TypeFamilies         #-}
+{-# LANGUAGE UndecidableInstances #-}
 module SatO.AJK.Lomake.Asuntohaku where
 
-import Data.Text                 (Text)
-import Generics.SOP.TH           (deriveGeneric)
+import Data.Reflection   (Given (..))
+import Data.Semigroup    ((<>))
+import Data.Text         (Text)
+import Generics.SOP.TH   (deriveGeneric)
+import Network.Mail.Mime (Address)
 
 import Lomake
 
+import SatO.AJK.Lomake.Classes
 import SatO.AJK.Lomake.LongText
 
 data Siv = Naimaton | Aviossa
@@ -91,7 +97,7 @@ data Overall = Overall
     , overallWhyYou    :: D "Miksi juuri sinun pitäisi päästä asumaan Satalinnan Säätiön asuntoihin" 'Optional LongText
     }
 
-data AJK = AJK
+data Asuntohaku = Asuntohaku
     { ajkPerson    :: D "Henkilötiedot"                   'Required Person
     , ajkStudies   :: D "Opinnot"                         'Required Studies
     , ajkTalous    :: D "Taloudellinen asema"             'Required Talous
@@ -111,7 +117,7 @@ deriveGeneric ''Osakunta
 deriveGeneric ''OtherInfo
 deriveGeneric ''Overall
 
-deriveGeneric ''AJK
+deriveGeneric ''Asuntohaku
 
 -------------------------------------------------------------------------------
 -- Sections
@@ -126,7 +132,7 @@ instance LomakeSection Osakunta
 instance LomakeSection OtherInfo
 instance LomakeSection Overall
 
-instance LomakeForm AJK
+instance LomakeForm Asuntohaku
 
 -------------------------------------------------------------------------------
 -- Siv
@@ -174,3 +180,22 @@ instance LomakeField Jasen where
     lomakeFieldValidate = enumLomakeFieldValidate
     lomakeFieldPretty = text . humanShow
 
+-------------------------------------------------------------------------------
+-- Classes
+-------------------------------------------------------------------------------
+
+instance LomakeName Asuntohaku where
+    type LomakeShortName Asuntohaku = "ajk-lomake"
+    lomakeTitle _ = "Hakulomake Satalinnan Säätion vuokraamiin huoneistoihin"
+
+instance LomakeEmail Asuntohaku where
+    lomakeSender ajk = unD (personFirstName person) <> " " <> unD (personLastName person)
+      where
+        person :: Person
+        person = unD $ ajkPerson ajk
+
+newtype AsuntohakuAddress = AsuntohakuAddress Address
+
+instance Given AsuntohakuAddress => LomakeAddress Asuntohaku where
+    lomakeAddress _ = case given of
+        AsuntohakuAddress addr -> addr

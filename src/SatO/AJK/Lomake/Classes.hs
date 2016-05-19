@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies        #-}
 module SatO.AJK.Lomake.Classes where
@@ -16,6 +17,12 @@ class KnownSymbol (LomakeShortName a) => LomakeName a where
 
     lomakeShortName :: Proxy a -> Text
     lomakeShortName _ = pack $ symbolVal (Proxy :: Proxy (LomakeShortName a))
+
+    lomakePreamble :: Proxy a -> Maybe Text
+    lomakePreamble _ = Nothing
+
+    lomakeCompleted :: Proxy a -> Text
+    lomakeCompleted _ = "Hakemus lähetetty. Kiitos hakemuksestasi!"
 
 class LomakeEmail a where
     lomakeSender :: a -> Text

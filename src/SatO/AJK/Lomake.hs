@@ -44,7 +44,7 @@ import Lomake
 import SatO.AJK.Lomake.Asuntohaku
 import SatO.AJK.Lomake.Classes
 import SatO.AJK.Lomake.Huoltoilmoitus
-import SatO.AJK.Lomake.Sisanen
+import SatO.AJK.Lomake.Sisainen
 
 -------------------------------------------------------------------------------
 -- API
@@ -64,7 +64,7 @@ type FormAPI a = LomakeShortName a :>
     )
 
 type AJKLomakeAPI =
-    FormAPI Asuntohaku :<|> FormAPI Sisanen :<|> FormAPI Huoltoilmoitus
+    FormAPI Asuntohaku :<|> FormAPI Sisainen :<|> FormAPI Huoltoilmoitus
 
 instance (LomakeForm a, LomakeName a) => ToHtml (Page a) where
     toHtmlRaw _ = pure ()
@@ -74,6 +74,7 @@ instance (LomakeForm a, LomakeName a) => ToHtml (Page a) where
                 form_ [action_ $ "/" <> lomakeShortName p <> "/" , method_ "POST"] $ do
                     div_ [class_ "row"] $ div_ [class_ "large-12 columns"] $ do
                         h1_ $ toHtml t
+                        maybe (pure ()) (span_ . toHtml) (lomakePreamble p)
                     lomakeView p env
                     div_ [class_ "row"] $ div_ [class_ "large-12 columns"] $ do
                         input_ [class_ "medium success button", type_ "submit", value_ "Esikatsele"]
@@ -97,11 +98,14 @@ instance LomakeName a => ToHtml (ConfirmPage a) where
     toHtmlRaw _ = pure ()
     toHtml (ConfirmPage sent) = page_ t $ do
         div_ [class_ "row"] $ div_ [class_ "large-12 columns"] $ do
+            h1_ $ toHtml t
             case sent of
-                True  -> div_ $ "Kiitos hakemuksestasi!"
+                True  -> div_ $ toHtml $ lomakeCompleted p
                 False -> div_ $ "Virhe! Jotain odottamatonta tapahtui. Kokeile hetken päästä uudestaan."
       where
-        t = lomakeTitle (Proxy :: Proxy a)
+        p = Proxy :: Proxy a
+        t = lomakeTitle p
+
 
 ajkLomakeApi :: Proxy AJKLomakeAPI
 ajkLomakeApi = Proxy
@@ -165,7 +169,7 @@ formServer =
 
 server :: NonEmpty Address -> NonEmpty Address -> Server AJKLomakeAPI
 server addr huoltoAddr =
-    give (SisanenAddress addr) $
+    give (SisainenAddress addr) $
     give (AsuntohakuAddress addr) $
     give (HuoltoilmoitusAddress huoltoAddr) $
     formServer :<|> formServer :<|> formServer

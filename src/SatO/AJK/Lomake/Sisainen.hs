@@ -4,7 +4,7 @@
 {-# LANGUAGE TemplateHaskell      #-}
 {-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE UndecidableInstances #-}
-module SatO.AJK.Lomake.Sisanen where
+module SatO.AJK.Lomake.Sisainen where
 
 import Data.List.NonEmpty (NonEmpty)
 import Data.Reflection   (Given (..))
@@ -20,7 +20,7 @@ import SatO.AJK.Lomake.LongText
 
 data SisPerson = SisPerson
     { sisFirstName :: D "Etunimet"         'Required Text
-    , sisLastName  :: D "Sukunimet"        'Required Text
+    , sisLastName  :: D "Sukunimi"         'Required Text
     , sisEmail     :: D "Sähköpostiosoite" 'Required Text
     , sisPhone     :: D "Puhelinnumero"    'Required Text
     }
@@ -32,9 +32,10 @@ data SisAsunto = SisAsunto
     , sisSize     :: D "Jos kyllä, niin mikä on muiden asuntojen minimikoko (m2)"  'Optional Text
     , sisHistory  :: D "Asumishistoria Satalinnan säätiön asuntolassa"             'Required LongText
     , sisActivity :: D "Toiminta osakunnalla ja/tai säätiössä"                     'Required LongText
+    , sisFree     :: D "Muut perustelut"                                           'Optional LongText
     }
 
-data Sisanen = Sisanen
+data Sisainen = Sisainen
     { sisPerson :: D "Henkilötiedot"          'Required SisPerson
     , sisAsunto :: D "Asunto- ja muut tiedot" 'Required SisAsunto
     }
@@ -42,29 +43,30 @@ data Sisanen = Sisanen
 deriveGeneric ''SisPerson
 deriveGeneric ''SisAsunto
 
-deriveGeneric ''Sisanen
+deriveGeneric ''Sisainen
 
 instance LomakeSection SisPerson
 instance LomakeSection SisAsunto
 
-instance LomakeForm Sisanen
+instance LomakeForm Sisainen
 
 -------------------------------------------------------------------------------
 -- Classes
 -------------------------------------------------------------------------------
 
-instance LomakeName Sisanen where
-    type LomakeShortName Sisanen = "sisanen-haku"
+instance LomakeName Sisainen where
+    type LomakeShortName Sisainen = "sisainen-haku"
     lomakeTitle _ = "Satalinnan Säätion sisäinen asuntohaku"
+    lomakePreamble _ = Just "Kaikki hakemisen kannalta olennainen kannattaa mainita. Eniten valintaan vaikuttaa aktiivisuus osakunnalla ja säätiössä. Kaikki tiedot käsitellään luottamuksellisesti."
 
-instance LomakeEmail Sisanen where
+instance LomakeEmail Sisainen where
     lomakeSender sis = unD (sisFirstName person) <> " " <> unD (sisLastName person)
       where
         person :: SisPerson
         person = unD $ sisPerson sis
 
-newtype SisanenAddress = SisanenAddress (NonEmpty Address)
+newtype SisainenAddress = SisainenAddress (NonEmpty Address)
 
-instance Given SisanenAddress => LomakeAddress Sisanen where
+instance Given SisainenAddress => LomakeAddress Sisainen where
     lomakeAddress _ = case given of
-        SisanenAddress addr -> addr
+        SisainenAddress addr -> addr

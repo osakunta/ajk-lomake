@@ -72,15 +72,11 @@ instance (LomakeForm a, LomakeName a) => ToHtml (Page a) where
         case v of
             Nothing -> do
                 form_ [action_ $ "/" <> lomakeShortName p <> "/" , method_ "POST"] $ do
-                    div_ [class_ "row"] $ div_ [class_ "large-12 columns"] $ do
-                        h1_ $ toHtml t
-                        maybe (pure ()) (span_ . toHtml) (lomakePreamble p)
+                    maybe (pure ()) (div_ [class_ "row"] . div_ [class_ "large-12 columns secondary callout"] . span_ . toHtml) (lomakePreamble p)
                     lomakeView p env
                     div_ [class_ "row"] $ div_ [class_ "large-12 columns"] $ do
-                        input_ [class_ "medium success button", type_ "submit", value_ "Esikatsele"]
+                        input_ [class_ "medium button", type_ "submit", value_ "Esikatsele"]
             Just ajk -> do
-                div_ [class_ "row"] $ div_ [class_ "large-12 columns"] $ do
-                    h1_ $ toHtml t
                 div_ [class_ "row"] $ div_ [class_ "large-12 columns"] $ do
                     h2_ $ "Tarkista tietosi vielä kerran:"
                 div_ [class_ "row"] $ div_ [class_ "large-12 columns"] $ do
@@ -89,16 +85,15 @@ instance (LomakeForm a, LomakeName a) => ToHtml (Page a) where
                 form_ [action_ $ "/" <> lomakeShortName p <> "/send", method_ "POST"] $ do
                     hiddenForm env
                     div_ [class_ "row"] $ div_ [class_ "large-12 columns"] $ do
-                        input_ [class_ "medium success button", type_ "submit", value_ "Lähetä"]
+                        input_ [class_ "medium button", type_ "submit", value_ "Lähetä"]
       where
         p = Proxy :: Proxy a
         t = lomakeTitle p
 
 instance LomakeName a => ToHtml (ConfirmPage a) where
     toHtmlRaw _ = pure ()
-    toHtml (ConfirmPage sent) = page_ t $ do
-        div_ [class_ "row"] $ div_ [class_ "large-12 columns"] $ do
-            h1_ $ toHtml t
+    toHtml (ConfirmPage sent) = page_ t $
+        div_ [class_ "row"] $ div_ [class_ "large-12 columns"] $
             case sent of
                 True  -> div_ $ toHtml $ lomakeCompleted p
                 False -> div_ $ "Virhe! Jotain odottamatonta tapahtui. Kokeile hetken päästä uudestaan."
@@ -155,7 +150,11 @@ page_ t b = doctypehtml_ $ do
         meta_ [httpEquiv_ "x-ua-compatible", content_"ie=edge"]
         style_ [type_ "text/css"] ($(embedStringFile "foundation-6/css/foundation.min.css") :: String)
         style_ [type_ "text/css"] ($(embedStringFile "style.css") :: String)
-    body_ b
+    body_ $ do
+        div_ [class_ "row"] $ do
+            div_ [class_ "large-1 medium-2 columns"] $ img_ [ src_ "http://asuntola.satakuntatalo.fi/images/talopiirros.jpg", style_ "width: 100px; margin: 5px;" ] 
+            div_ [class_ "large-11 medium-10 columns"] $ h1_ [ style_ "margin: 10px 0" ] $ toHtml t
+        b
 
 -------------------------------------------------------------------------------
 -- WAI boilerplate

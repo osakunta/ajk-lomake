@@ -44,6 +44,7 @@ import Lomake
 import SatO.AJK.Lomake.Asuntohaku
 import SatO.AJK.Lomake.Classes
 import SatO.AJK.Lomake.Huoltoilmoitus
+import SatO.AJK.Lomake.Palaute
 import SatO.AJK.Lomake.Sisainen
 
 -------------------------------------------------------------------------------
@@ -64,7 +65,10 @@ type FormAPI a = LomakeShortName a :>
     )
 
 type AJKLomakeAPI =
-    FormAPI Asuntohaku :<|> FormAPI Sisainen :<|> FormAPI Huoltoilmoitus
+    FormAPI Asuntohaku :<|>
+    FormAPI Sisainen :<|>
+    FormAPI Huoltoilmoitus :<|>
+    FormAPI Palaute
 
 instance (LomakeForm a, LomakeName a) => ToHtml (Page a) where
     toHtmlRaw _ = pure ()
@@ -152,7 +156,7 @@ page_ t b = doctypehtml_ $ do
         style_ [type_ "text/css"] ($(embedStringFile "style.css") :: String)
     body_ $ do
         div_ [class_ "row"] $ do
-            div_ [class_ "large-1 medium-2 columns"] $ img_ [ src_ "http://asuntola.satakuntatalo.fi/images/talopiirros.jpg", style_ "width: 100px; margin: 5px;" ] 
+            div_ [class_ "large-1 medium-2 columns"] $ img_ [ src_ "http://asuntola.satakuntatalo.fi/images/talopiirros.jpg", style_ "width: 100px; margin: 5px;" ]
             div_ [class_ "large-11 medium-10 columns"] $ h1_ [ style_ "margin: 10px 0" ] $ toHtml t
         b
 
@@ -170,8 +174,9 @@ server :: NonEmpty Address -> NonEmpty Address -> Server AJKLomakeAPI
 server addr huoltoAddr =
     give (SisainenAddress addr) $
     give (AsuntohakuAddress addr) $
+    give (PalauteAddress addr) $
     give (HuoltoilmoitusAddress huoltoAddr) $
-    formServer :<|> formServer :<|> formServer
+    formServer :<|> formServer :<|> formServer :<|> formServer
 
 app
     :: NonEmpty Address -- ^ AJK Address

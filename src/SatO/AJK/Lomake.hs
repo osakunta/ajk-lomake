@@ -113,7 +113,8 @@ firstPost :: MonadIO m => LomakeResult a -> m (Page a)
 firstPost = return . Page
 
 secondPost
-    :: forall m a. (MonadIO m, LomakeForm a, LomakeEmail a, LomakeAddress a)
+    :: forall m a.
+       (MonadIO m, LomakeForm a, LomakeEmail a, LomakeAddress a, LomakeName a)
     => LomakeResult a -> m (ConfirmPage a)
 secondPost (LomakeResult _ Nothing) = pure $ ConfirmPage False
 secondPost (LomakeResult _ (Just ajk)) = do
@@ -129,7 +130,7 @@ secondPost (LomakeResult _ (Just ajk)) = do
     body = TL.fromStrict $ T.pack $ render $ lomakePretty ajk
 
     subject :: Text
-    subject = "Asuntohakemus " <> name
+    subject = lomakeEmailTitle (Proxy :: Proxy a) <> " " <> name
 
     name :: Text
     name = lomakeSender ajk
@@ -164,7 +165,9 @@ page_ t b = doctypehtml_ $ do
 -- WAI boilerplate
 -------------------------------------------------------------------------------
 
-formServer :: (LomakeForm a, LomakeEmail a, LomakeAddress a) => Server (FormAPI a)
+formServer
+    :: (LomakeForm a, LomakeEmail a, LomakeAddress a, LomakeName a)
+    => Server (FormAPI a)
 formServer =
          pure (Page $ LomakeResult emptyLomakeEnv Nothing)
     :<|> firstPost

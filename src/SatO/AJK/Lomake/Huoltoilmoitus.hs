@@ -46,6 +46,7 @@ instance LomakeName Huoltoilmoitus where
     type LomakeShortName Huoltoilmoitus = "huoltoilmoitus"
     lomakeTitle _ = "Satalinnan Säätio - huoltoilmoitus"
     lomakeCompleted _ = "Huoltoilmoitus lähetetty."
+    lomakeEmailTitle _ = "Huoltoilmoitus"
 
 instance LomakeEmail Huoltoilmoitus where
     lomakeSender sis = unD (huoltoKohde inner) <> " " <> unD (huoltoSource inner)

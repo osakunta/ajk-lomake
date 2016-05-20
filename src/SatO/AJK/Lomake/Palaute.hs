@@ -43,6 +43,7 @@ instance LomakeName Palaute where
     type LomakeShortName Palaute = "palaute-lomake"
     lomakeTitle _ = "Palautteen jättäminen asuntolajohtokunnalle"
     lomakeCompleted _ = "Palaute lähetetty."
+    lomakeEmailTitle _ = "AJK Palaute"
 
 instance LomakeEmail Palaute where
     lomakeSender sis = fromMaybe "anonyymi" $ unD (palauteSource inner)

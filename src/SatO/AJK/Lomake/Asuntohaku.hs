@@ -27,6 +27,8 @@ data Jasen = Varsinainen | Ulko
 data Parents = BothAlive | OneAlive | Dead | YH
     deriving (Eq, Show, Enum, Bounded)
 
+data Toistaiseksi = Toistaiseksi | Maaraikaiseksi
+    deriving (Eq, Show, Enum, Bounded)
 
 data Person = Person
     { personFirstName  :: D "Etunimet"                        'Required Text
@@ -52,15 +54,15 @@ data Studies = Studies
     }
 
 data Talous = Talous
-    { talousTulo        :: D "Verotettava tulo vuonna 2014"                                     'Required Text
-    , talousVar         :: D "Verotettava varallisuus vuonna 2014"                              'Required Text
-    , talousBrutto      :: D "Bruttotulot vuodelta 2014"                                        'Required Text
-    , talousArvio       :: D "Arvio bruttotuloista vuonna 2015"                                 'Required Text
-    , talousLaatu       :: D "Tulon laatu 2015 (ansio-, eläke-, pääoma-, vuokra- tai muu tulo)" 'Required Text
-    , talousEmployer    :: D "Työnantaja vuonna 2015"                                           'Optional Text
-    , talousPuolisoTulo :: D "Arvio puolison bruttotuloista vuonna 2015"                        'Optional Text
+    { talousTulo        :: D "Verotettava tulo vuonna 2015"                                     'Required Text
+    , talousVar         :: D "Verotettava varallisuus vuonna 2015"                              'Required Text
+    , talousBrutto      :: D "Bruttotulot vuodelta 2015"                                        'Required Text
+    , talousArvio       :: D "Arvio bruttotuloista vuonna 2016"                                 'Required Text
+    , talousLaatu       :: D "Tulon laatu 2016 (ansio-, eläke-, pääoma-, vuokra- tai muu tulo)" 'Required Text
+    , talousEmployer    :: D "Työnantaja vuonna 2016"                                           'Optional Text
+    , talousPuolisoTulo :: D "Arvio puolison bruttotuloista vuonna 2016"                        'Optional Text
     , talousPuolisoJob  :: D "Puolison ammatti"                                                 'Optional Text
-    , talousApuraha     :: D "Apurahat vuosina 2012-2015 (myöntäjä ja määrä)"                   'Optional Text
+    , talousApuraha     :: D "Apurahat vuosina 2013-2016 (myöntäjä ja määrä)"                   'Optional Text
     }
 
 data Family = Family
@@ -87,7 +89,9 @@ data Osakunta = Osakunta
     }
 
 data OtherInfo = OtherInfo
-    { otherInfoWhen :: D "Milloin voin vastaanottaa asunnon" 'Required Text
+    { otherInfoToistaiseksi :: D "Haen asuntoa:"                            'Required Toistaiseksi
+    , otherInfoWhenEnd      :: D "Jos määräajaksi, niin mille aikavälille"  'Optional Text
+    , otherInfoWhen         :: D "Milloin voin vastaanottaa asunnon"        'Required Text
     }
 
 data Overall = Overall
@@ -177,6 +181,21 @@ instance HumanShow Jasen where
 instance LomakeEnum Jasen
 
 instance LomakeField Jasen where
+    lomakeFieldView = enumLomakeFieldView
+    lomakeFieldValidate = enumLomakeFieldValidate
+    lomakeFieldPretty = text . humanShow
+
+-------------------------------------------------------------------------------
+-- Toistaieksi
+-------------------------------------------------------------------------------
+
+instance HumanShow Toistaiseksi where
+    humanShow Toistaiseksi   = "Toistaiseksi"
+    humanShow Maaraikaiseksi = "Määräajaksi"
+
+instance LomakeEnum Toistaiseksi
+
+instance LomakeField Toistaiseksi where
     lomakeFieldView = enumLomakeFieldView
     lomakeFieldValidate = enumLomakeFieldValidate
     lomakeFieldPretty = text . humanShow

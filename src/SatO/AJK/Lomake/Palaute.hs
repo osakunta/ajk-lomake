@@ -40,7 +40,7 @@ instance LomakeForm Palaute
 -------------------------------------------------------------------------------
 
 instance LomakeName Palaute where
-    type LomakeShortName Palaute = "palaute-lomake"
+    type LomakeShortName Palaute = "palautelomake"
     lomakeTitle _ = "Palautteen jättäminen asuntolajohtokunnalle"
     lomakeCompleted _ = "Palaute lähetetty."
     lomakeEmailTitle _ = "AJK Palaute"

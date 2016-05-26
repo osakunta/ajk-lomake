@@ -21,8 +21,8 @@ import SatO.AJK.Lomake.LongText
 data Palaute' = Palaute'
     { palauteText   :: D "Palaute"           'Required LongText
     , palauteSource :: D "Palautteen antaja" 'Optional Text
-    , palauteEmail  :: D "Sähköpostiosoite"  'Optional Text
-    , palautePhone  :: D "Puhelinnumero"     'Optional Text
+    , palauteEmail  :: D "Sähköpostiosoite"  'Optional EmailText
+    , palautePhone  :: D "Puhelinnumero"     'Optional PhoneText
     }
 
 data Palaute = Palaute

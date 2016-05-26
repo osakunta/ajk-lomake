@@ -24,8 +24,8 @@ data Huoltoilmoitus' = Huoltoilmoitus'
     , huoltoYleis  :: D "Vian saa tulla korjaamaan huoneeseen yleisavaimella päiväsaikaan. Korjaus tapahtuu nopeammin, jos huoltomies saa käydä vapaasti korjaamassa vian." 'Required Bool
       -- ^ Huoltomiehen puhelinnumero on 050-2861.
     , huoltoSource :: D "Ilmoituksen tekijä"    'Required Text
-    , huoltoEmail  :: D "Sähköpostiosoite"      'Required Text
-    , huoltoPhone  :: D "Puhelinnumero"         'Required Text
+    , huoltoEmail  :: D "Sähköpostiosoite"      'Required EmailText
+    , huoltoPhone  :: D "Puhelinnumero"         'Required PhoneText
     }
 
 data Huoltoilmoitus = Huoltoilmoitus

@@ -21,8 +21,8 @@ import SatO.AJK.Lomake.LongText
 data SisPerson = SisPerson
     { sisFirstName :: D "Etunimet"         'Required Text
     , sisLastName  :: D "Sukunimi"         'Required Text
-    , sisEmail     :: D "Sähköpostiosoite" 'Required Text
-    , sisPhone     :: D "Puhelinnumero"    'Required Text
+    , sisEmail     :: D "Sähköpostiosoite" 'Required EmailText
+    , sisPhone     :: D "Puhelinnumero"    'Required PhoneText
     }
 
 data SisAsunto = SisAsunto

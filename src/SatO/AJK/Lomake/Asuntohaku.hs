@@ -38,7 +38,7 @@ data Person = Person
     , personBirthplace :: D "Syntymäpaikka"                   'Required Text
     , personAddress    :: D "Postiosoite"                     'Required Text
     , personSivilis    :: D "Siviilisääty"                    'Required Siv
-    , personEmail      :: D "Sähköpostiosoite"                'Required Text
+    , personEmail      :: D "Sähköpostiosoite"                'Required EmailText
     , personChildren   :: D "Alaikäiset lapset (syntymäajat)" 'Optional Text
     , personFacebook   :: D "Kotisivu tai sivu facebookissa"  'Optional Text
     }

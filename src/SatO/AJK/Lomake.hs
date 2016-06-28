@@ -139,7 +139,7 @@ secondPost (LomakeResult _ (Just ajk)) = do
     toAddresses = lomakeAddress (Proxy :: Proxy a)
 
     fromAddress :: Address
-    fromAddress = Address (Just "AJK-Lomake") "ajk-lomake@satakuntatalo.fi"
+    fromAddress = Address (Just subject) "<noreply@satakuntatalo.fi>"
 
 -------------------------------------------------------------------------------
 -- HTML stuff

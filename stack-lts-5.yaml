@@ -2,7 +2,7 @@ resolver: lts-5.17
 packages:
 - '.'
 extra-deps:
-- servant-0.5
-- servant-server-0.5
-- servant-lucid-0.5
+- servant-0.7.1
+- servant-server-0.7.1
+- servant-lucid-0.7.1
 flags: {}

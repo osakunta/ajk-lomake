@@ -27,6 +27,9 @@ class KnownSymbol (LomakeShortName a) => LomakeName a where
     lomakeEmailTitle :: Proxy a -> Text
     lomakeEmailTitle _ = "Asuntohakemus"
 
+    lomakeRedo :: Proxy a -> Bool
+    lomakeRedo _ = False
+
 class LomakeEmail a where
     lomakeSender :: a -> Text
 

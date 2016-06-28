@@ -14,7 +14,7 @@ module SatO.AJK.Lomake (
     ) where
 
 import Control.Exception         (SomeException)
-import Control.Monad             (forM_)
+import Control.Monad             (forM_, when)
 import Control.Monad.IO.Class    (MonadIO (..))
 import Data.FileEmbed            (embedStringFile)
 import Data.Function             ((&))
@@ -97,10 +97,12 @@ instance (LomakeForm a, LomakeName a) => ToHtml (Page a) where
 instance LomakeName a => ToHtml (ConfirmPage a) where
     toHtmlRaw _ = pure ()
     toHtml (ConfirmPage sent) = page_ t $
-        div_ [class_ "row"] $ div_ [class_ "large-12 columns"] $
-            case sent of
-                True  -> div_ $ toHtml $ lomakeCompleted p
-                False -> div_ $ "Virhe! Jotain odottamatonta tapahtui. Kokeile hetken päästä uudestaan."
+        div_ [class_ "row"] $ div_ [class_ "large-12 columns"] $ case sent of
+            True  -> do
+                div_ $ toHtml $ lomakeCompleted p
+                when (lomakeRedo p) $
+                    a_ [href_ $ "/" <> lomakeShortName p <> "/" ] $ "Täytä uusi"
+            False -> div_ $ "Virhe! Jotain odottamatonta tapahtui. Kokeile hetken päästä uudestaan."
       where
         p = Proxy :: Proxy a
         t = lomakeTitle p

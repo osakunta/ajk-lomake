@@ -58,6 +58,7 @@ instance LomakeForm Sisainen
 instance LomakeName Sisainen where
     type LomakeShortName Sisainen = "sisainen-haku"
     lomakeTitle _ = "Satalinnan Säätion sisäinen asuntohaku"
+    lomakeEmailTitle _ = "Sisäinen Asuntohakemus"
     lomakePreamble _ = Just "Kaikki hakemisen kannalta olennainen kannattaa mainita. Eniten valintaan vaikuttaa aktiivisuus osakunnalla ja säätiössä. Kaikki tiedot käsitellään luottamuksellisesti."
 
 instance LomakeEmail Sisainen where

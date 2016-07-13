@@ -25,7 +25,6 @@ class KnownSymbol (LomakeShortName a) => LomakeName a where
     lomakeCompleted _ = "Hakemus lähetetty. Kiitos hakemuksestasi!"
 
     lomakeEmailTitle :: Proxy a -> Text
-    lomakeEmailTitle _ = "Asuntohakemus"
 
     lomakeRedo :: Proxy a -> Bool
     lomakeRedo _ = False

@@ -34,6 +34,7 @@ import System.Environment        (lookupEnv)
 import System.IO                 (hPutStrLn, stderr, stdout)
 import Text.Read                 (readMaybe)
 
+import qualified Data.ByteString.Lazy     as LBS
 import qualified Data.List.NonEmpty       as NE
 import qualified Data.Text                as T
 import qualified Data.Text.Lazy           as TL
@@ -125,6 +126,8 @@ secondPost (LomakeResult _ (Just ajk)) = do
         hPutStrLn stderr $ "Sending application from " <> T.unpack name <> " to " <> show toAddress
         hPutStrLn stdout $ TL.unpack body
         bs <- renderMail' mail
+        LBS.hPutStr stdout bs
+        LBS.hPutStr stdout "\n\n"
         sendmail bs
     pure $ ConfirmPage True
   where
@@ -141,7 +144,7 @@ secondPost (LomakeResult _ (Just ajk)) = do
     toAddresses = lomakeAddress (Proxy :: Proxy a)
 
     fromAddress :: Address
-    fromAddress = Address (Just subject) "<noreply@satakuntatalo.fi>"
+    fromAddress = Address (Just subject) "noreply@satakuntatalo.fi"
 
 -------------------------------------------------------------------------------
 -- HTML stuff

@@ -11,7 +11,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Lomake (
     -- * Definition type
-    D(..), unD, d, dToMaybe,
+    D, D'(..), unD, d, dToMaybe,
     -- * Form classes
     LomakeForm(..),
     LomakeSection(..),
@@ -58,7 +58,7 @@ module Lomake (
     render,
     ) where
 
-import Control.Monad  (forM_)
+import Control.Monad  (forM_, when)
 import Data.Map       (Map)
 import Data.Maybe     (isJust, fromMaybe)
 import Data.Semigroup ((<>))
@@ -72,8 +72,15 @@ import qualified Data.Map         as Map
 import qualified Data.Text        as T
 import qualified Servant
 
+-------------------------------------------------------------------------------
+-- D
+-------------------------------------------------------------------------------
+
 -- | Field description.
-data D (sym :: Symbol) (req :: Required) a = D (O req a)
+type D sym req a = D' sym req a ""
+
+-- | Field description with extra info.
+data D' (sym :: Symbol) (req :: Required) a (extra :: Symbol) = D (O req a)
 
 d :: forall sym req a. SRequiredI req => a -> D sym req a
 d = case srequired (Proxy :: Proxy req) of
@@ -218,15 +225,23 @@ class LomakeField' a where
         :: a
         -> Doc
 
-instance (LomakeField a, KnownSymbol sym, SRequiredI req) => LomakeField' (D sym req a) where
+instance (LomakeField a, KnownSymbol sym, KnownSymbol extra, SRequiredI req)
+    => LomakeField' (D' sym req a extra)
+  where
     lomakeFieldView' _ env name = div_ [class_ cls] $ do
         div_ [class_ "large-4 columns"] $ do
-            label_ [class_ "text-right middle", for_ $ T.pack name] $ toHtml desc'
+            label_ [class_ "text-right middle", for_ $ T.pack name] $ do
+                toHtml desc'
+                when (not $ T.null extra) $ do
+                    br_ []
+                    small_ $ toHtml extra
         div_ [class_ "large-8 columns"] $ lomakeFieldView proxyA env (T.pack name)
       where
         proxyA = Proxy :: Proxy a
         proxySym = Proxy :: Proxy sym
         proxyReq = Proxy :: Proxy req
+        proxyExtra = Proxy :: Proxy extra
+        extra = T.pack (symbolVal proxyExtra)
         desc = T.pack (symbolVal proxySym)
         desc' = if (lowerSRequired proxyReq)
                     then desc <> "*"

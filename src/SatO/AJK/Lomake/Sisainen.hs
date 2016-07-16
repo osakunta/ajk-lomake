@@ -26,11 +26,11 @@ data SisPerson = SisPerson
     }
 
 data SisAsunto = SisAsunto
-    { sisWhich    :: D "Haettava asunto"                                           'Required Text
+    { sisWhich    :: D' "Haettavat asunnot toivejärjestyksessä"                    'Required Text     "Listaa tähän kaikki tässä haussa hakemasi asunnot"
     , sisReason   :: D "Miksi haet kyseistä asuntoa"                               'Required LongText
-    , sisOther    :: D "Olen kiinnostunut myös muista vapautuvista asunnoista"     'Required Bool
-    , sisSize     :: D "Jos kyllä, niin mikä on muiden asuntojen minimikoko (m2) ja muut vaatimukset" 
-                                                                                   'Optional Text
+    -- , sisOther    :: D' "Olen kiinnostunut myös muista vapautuvista asunnoista"    'Required Bool      "Asunnot, jotka vapautuvat sisäisen muuttoliikkeen takia"
+    -- , sisSize     :: D "Jos kyllä, niin mikä on muiden asuntojen minimikoko (m2) ja muut vaatimukset" 
+    --                                                                               'Optional Text
     , sisHistory  :: D "Asumishistoria Satalinnan säätiön asuntolassa"             'Required LongText
     , sisActivity :: D "Toiminta osakunnalla ja/tai säätiössä"                     'Required LongText
     , sisFree     :: D "Muut perustelut"                                           'Optional LongText

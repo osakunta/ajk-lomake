@@ -39,7 +39,7 @@ data Person = Person
     , personAddress    :: D "Postiosoite"                     'Required Text
     , personSivilis    :: D "Siviilisääty"                    'Required Siv
     , personEmail      :: D "Sähköpostiosoite"                'Required EmailText
-    , personPhone      :: D "Puhelinnumero"                   'Required PhoneText
+    , personPhone      :: D' "Puhelinnumero"                  'Required PhoneText "Huom! Asukasvalinnoista ilmoitetaan puhelimitse."
     , personChildren   :: D "Alaikäiset lapset (syntymäajat)" 'Optional Text
     , personFacebook   :: D "Kotisivu tai sivu facebookissa"  'Optional Text
     }
@@ -81,7 +81,7 @@ data Satakunta = Satakunta
     { satakuntaSiteet  :: D "Siteeni Satakuntaan (omin sanoin)"                                       'Required LongText
     , satakuntaFrom    :: D "Hakija on syntynyt, opiskellut tai asunut Satakunnassa"                  'Required Bool
     , satakuntaParents :: D "Hakijan vanhemmista jompikumpi on kuulunut Satakuntalaiseen osakuntaan"  'Required Bool
-    , satakuntaTiedots :: D "Hakijan tietoja saa käyttää Satakuntalaisen Osakunnan tiedotukseen"      'Required Bool
+    -- , satakuntaTiedots :: D "Hakijan tietoja saa käyttää Satakuntalaisen Osakunnan tiedotukseen"      'Required Bool
     }
 
 data Osakunta = Osakunta
@@ -209,7 +209,7 @@ instance LomakeName Asuntohaku where
     type LomakeShortName Asuntohaku = "ajk-lomake"
     lomakeTitle _ = "Hakulomake Satalinnan Säätion vuokraamiin huoneistoihin"
     lomakeEmailTitle _ = "Asuntohakemus"
-    lomakePreamble _ = Just "Huom! Asukasvalinnoista ilmoitetaan puhelimitse."
+    lomakePreamble _ = Just "Panostathan hakemukseen, sillä valinnat tehdään hakemusten perusteella."
 
 instance LomakeEmail Asuntohaku where
     lomakeSender ajk = unD (personFirstName person) <> " " <> unD (personLastName person)

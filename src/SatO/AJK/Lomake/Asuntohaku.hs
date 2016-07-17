@@ -209,6 +209,7 @@ instance LomakeName Asuntohaku where
     type LomakeShortName Asuntohaku = "ajk-lomake"
     lomakeTitle _ = "Hakulomake Satalinnan Säätion vuokraamiin huoneistoihin"
     lomakeEmailTitle _ = "Asuntohakemus"
+    lomakePreamble _ = Just "Huom! Asukasvalinnoista ilmoitetaan puhelimitse."
 
 instance LomakeEmail Asuntohaku where
     lomakeSender ajk = unD (personFirstName person) <> " " <> unD (personLastName person)

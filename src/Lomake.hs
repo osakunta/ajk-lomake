@@ -26,6 +26,7 @@ module Lomake (
     LomakeResult(..),
     runLomakeValidate,
     validate,
+    ovalidate,
     lomakeText,
     requiredText,
     optionalText,
@@ -47,6 +48,7 @@ module Lomake (
     O,
     otraverse,
     ofmap,
+    opure,
     -- ** Singleton bool
     Required(..),
     SRequired(..),
@@ -60,7 +62,7 @@ module Lomake (
 
 import Control.Monad  (forM_, when)
 import Data.Map       (Map)
-import Data.Maybe     (isJust, fromMaybe)
+import Data.Maybe     (fromMaybe)
 import Data.Semigroup ((<>))
 import Data.String    (fromString)
 import Data.Text      (Text)
@@ -70,6 +72,7 @@ import Lucid
 
 import qualified Data.Map         as Map
 import qualified Data.Text        as T
+import qualified Data.Foldable    as F
 import qualified Servant
 
 -------------------------------------------------------------------------------
@@ -137,13 +140,22 @@ otraverse p = case srequired p of
     SOptional -> traverse
 
 ofmap
-    :: forall req f a b. (SRequiredI req, Functor f)
+    :: forall req a b. (SRequiredI req)
     => Proxy req
     -> (a -> b)
-    -> f (O req a) -> f (O req b)
-ofmap p = case srequired p of
-    SRequired -> fmap
-    SOptional -> (fmap . fmap)
+    -> O req a -> O req b
+ofmap p f = case srequired p of
+    SRequired -> f
+    SOptional -> fmap f
+
+opure
+    :: forall req a. (SRequiredI req)
+    => Proxy req
+    -> a
+    -> O req a
+opure p x = case srequired p of
+    SRequired -> x
+    SOptional -> Just x
 
 -------------------------------------------------------------------------------
 -- HumanShow
@@ -196,8 +208,8 @@ class LomakeField a where
         :: a
         -> Doc
 
-hasErrors :: LomakeEnv -> Text -> Bool
-hasErrors (LomakeEnv errs _) name = isJust $ Map.lookup name errs
+hasErrors :: LomakeEnv -> Text -> Maybe [Text]
+hasErrors (LomakeEnv errs _) name = Map.lookup name errs
 
 -- | The value posted, defaults to @""@
 submittedTextValue :: LomakeEnv -> Text -> Text
@@ -235,6 +247,9 @@ instance (LomakeField a, KnownSymbol sym, KnownSymbol extra, SRequiredI req)
                 when (not $ T.null extra) $ do
                     br_ []
                     small_ $ toHtml extra
+                F.for_ errs $ \e -> do
+                    br_ []
+                    span_ $ toHtml e
         div_ [class_ "large-8 columns"] $ lomakeFieldView proxyA env (T.pack name)
       where
         proxyA = Proxy :: Proxy a
@@ -246,7 +261,8 @@ instance (LomakeField a, KnownSymbol sym, KnownSymbol extra, SRequiredI req)
         desc' = if (lowerSRequired proxyReq)
                     then desc <> "*"
                     else desc
-        cls = if hasErrors env (T.pack name) then "row error" else "row"
+        errs = fromMaybe [] (hasErrors env (T.pack name))
+        cls = if null errs then "row" else "row error"
 
     lomakeFieldValidate' name = D <$> (lomakeFieldValidate (Proxy :: Proxy a) (Proxy :: Proxy req)  (T.pack name))
 
@@ -359,6 +375,14 @@ validate f (LomakeValidate l) = LomakeValidate $ \p ->
         (errs, Just x)  -> case f x of
             Right y     -> (errs, Just y)
             Left (n, m) -> (Map.unionWith mappend errs (Map.singleton n [m]), Nothing)
+
+ovalidate
+    :: forall a b req. (SRequiredI req)
+    => Proxy req
+    -> (a -> Either (Text, Text) b)
+    -> LomakeValidate (O req a) -> LomakeValidate (O req b)
+ovalidate p f = validate (otraverse p f)
+
 
 -- | Generalisation of 'requiredText' and 'optionalText'.
 lomakeText

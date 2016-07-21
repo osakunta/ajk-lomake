@@ -95,6 +95,8 @@ data OtherInfo = OtherInfo
     { otherInfoToistaiseksi :: D "Haen asuntoa:"                            'Required Toistaiseksi
     , otherInfoWhenEnd      :: D "Jos määräajaksi, niin mille aikavälille"  'Optional Text
     , otherInfoWhen         :: D "Milloin voin vastaanottaa asunnon"        'Required Text
+    , otherInfoPet          :: D' "Mukanani muuttaa lemmikki"               'Required Bool
+        "Huom: Satalinnan säätiön soluasunnoissa ei saa pitää lemmikkejä"
     }
 
 data Overall = Overall

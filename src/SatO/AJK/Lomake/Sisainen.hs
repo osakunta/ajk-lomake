@@ -18,6 +18,8 @@ import Lomake
 import SatO.AJK.Lomake.Classes
 import SatO.AJK.Lomake.LongText
 
+import qualified Data.Text as T
+
 data SisPerson = SisPerson
     { sisFirstName :: D "Etunimet"         'Required Text
     , sisLastName  :: D "Sukunimi"         'Required Text
@@ -62,8 +64,17 @@ instance LomakeName Sisainen where
     lomakePreamble _ = Just "Kaikki hakemisen kannalta olennainen kannattaa mainita. Eniten valintaan vaikuttaa aktiivisuus osakunnalla ja säätiössä. Kaikki tiedot käsitellään luottamuksellisesti."
 
 instance LomakeEmail Sisainen where
-    lomakeSender sis = unD (sisFirstName person) <> " " <> unD (sisLastName person)
+    lomakeSender sis = etu
+        <> " "
+        <> unD (sisLastName person)
+        <> ": "
+        <> (unD . sisWhich . unD . sisAsunto $ sis)
       where
+        etu :: Text
+        etu = case T.words . unD . sisFirstName $ person of
+            []    -> ""
+            (x:_) -> x
+
         person :: SisPerson
         person = unD $ sisPerson sis
 

@@ -90,7 +90,7 @@ d = case srequired (Proxy :: Proxy req) of
     SRequired -> D . id
     SOptional -> D . Just
 
-unD :: D sym req a -> O req a
+unD :: D' sym req a extra -> O req a
 unD (D x) = x
 
 -- | 'D' can be always flatten to 'Maybe'.

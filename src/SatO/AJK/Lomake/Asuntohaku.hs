@@ -18,6 +18,8 @@ import Lomake
 import SatO.AJK.Lomake.Classes
 import SatO.AJK.Lomake.LongText
 
+import qualified Data.Text as T
+
 data Siv = Naimaton | Aviossa
     deriving (Eq, Show, Enum, Bounded)
 
@@ -212,10 +214,20 @@ instance LomakeName Asuntohaku where
     lomakePreamble _ = Just "Panostathan hakemukseen, sillä valinnat tehdään hakemusten perusteella."
 
 instance LomakeEmail Asuntohaku where
-    lomakeSender ajk = unD (personFirstName person) <> " " <> unD (personLastName person)
+    lomakeSender ajk = name <> " " <> lastname
       where
         person :: Person
         person = unD $ ajkPerson ajk
+
+        -- | if there is callname, use it
+        -- otherwise pick first of firstnames
+        name :: Text
+        name = case (unD . personCallName $ person, T.words . unD . personFirstName $ person) of
+            (Just e, _ )     -> e
+            (Nothing, [])    -> ""
+            (Nothing, (x:_)) -> x
+
+        lastname = unD (personLastName person)
 
     lomakeSend ajk  = Just $ Address (Just $ lomakeSender ajk) addr
       where

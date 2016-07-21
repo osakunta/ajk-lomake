@@ -32,5 +32,9 @@ class KnownSymbol (LomakeShortName a) => LomakeName a where
 class LomakeEmail a where
     lomakeSender :: a -> Text
 
+    -- | Send lomake to applicant
+    lomakeSend :: a -> Maybe Address
+    lomakeSend _ = Nothing
+
 class LomakeAddress a where
     lomakeAddress :: Proxy a -> NonEmpty Address

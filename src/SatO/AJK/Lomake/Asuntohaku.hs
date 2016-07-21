@@ -11,7 +11,7 @@ import Data.Reflection    (Given (..))
 import Data.Semigroup     ((<>))
 import Data.Text          (Text)
 import Generics.SOP.TH    (deriveGeneric)
-import Network.Mail.Mime  (Address)
+import Network.Mail.Mime  (Address (..))
 
 import Lomake
 
@@ -216,6 +216,10 @@ instance LomakeEmail Asuntohaku where
       where
         person :: Person
         person = unD $ ajkPerson ajk
+
+    lomakeSend ajk  = Just $ Address (Just $ lomakeSender ajk) addr
+      where
+        addr = getFancyText . unD . personEmail . unD . ajkPerson $ ajk
 
 newtype AsuntohakuAddress = AsuntohakuAddress (NonEmpty Address)
 

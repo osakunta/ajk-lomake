@@ -7,11 +7,11 @@
 module SatO.AJK.Lomake.Sisainen where
 
 import Data.List.NonEmpty (NonEmpty)
-import Data.Reflection   (Given (..))
-import Data.Semigroup    ((<>))
-import Data.Text         (Text)
-import Generics.SOP.TH   (deriveGeneric)
-import Network.Mail.Mime (Address)
+import Data.Reflection    (Given (..))
+import Data.Semigroup     ((<>))
+import Data.Text          (Text)
+import Generics.SOP.TH    (deriveGeneric)
+import Network.Mail.Mime  (Address (..))
 
 import Lomake
 
@@ -29,7 +29,7 @@ data SisAsunto = SisAsunto
     { sisWhich    :: D' "Haettavat asunnot toivejärjestyksessä"                    'Required Text     "Listaa tähän kaikki tässä haussa hakemasi asunnot"
     , sisReason   :: D "Miksi haet kyseistä asuntoa"                               'Required LongText
     -- , sisOther    :: D' "Olen kiinnostunut myös muista vapautuvista asunnoista"    'Required Bool      "Asunnot, jotka vapautuvat sisäisen muuttoliikkeen takia"
-    -- , sisSize     :: D "Jos kyllä, niin mikä on muiden asuntojen minimikoko (m2) ja muut vaatimukset" 
+    -- , sisSize     :: D "Jos kyllä, niin mikä on muiden asuntojen minimikoko (m2) ja muut vaatimukset"
     --                                                                               'Optional Text
     , sisHistory  :: D "Asumishistoria Satalinnan säätiön asuntolassa"             'Required LongText
     , sisActivity :: D "Toiminta osakunnalla ja/tai säätiössä"                     'Required LongText
@@ -66,6 +66,10 @@ instance LomakeEmail Sisainen where
       where
         person :: SisPerson
         person = unD $ sisPerson sis
+
+    lomakeSend sis = Just $ Address (Just $ lomakeSender sis) addr
+      where
+        addr = getFancyText . unD . sisEmail . unD . sisPerson $ sis
 
 newtype SisainenAddress = SisainenAddress (NonEmpty Address)
 

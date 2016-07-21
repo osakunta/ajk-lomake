@@ -115,6 +115,13 @@ ajkLomakeApi = Proxy
 firstPost :: MonadIO m => LomakeResult a -> m (Page a)
 firstPost = return . Page
 
+sendmail' :: Mail -> IO ()
+sendmail' mail = do
+    bs <- renderMail' mail
+    LBS.hPutStr stdout bs
+    LBS.hPutStr stdout "\n\n"
+    sendmail bs
+
 secondPost
     :: forall m a.
        (MonadIO m, LomakeForm a, LomakeEmail a, LomakeAddress a, LomakeName a)
@@ -122,26 +129,32 @@ secondPost
 secondPost (LomakeResult _ Nothing) = pure $ ConfirmPage False
 secondPost (LomakeResult _ (Just ajk)) = do
     liftIO $ forM_ toAddresses $ \toAddress -> do
-        let mail = simpleMail' toAddress fromAddress subject body :: Mail
+        let mail  = simpleMail' toAddress fromAddress subject body :: Mail
+            mail' = (\a -> mail { mailTo = [a] }) <$> lomakeSend ajk
         hPutStrLn stderr $ "Sending application from " <> T.unpack name <> " to " <> show toAddress
         hPutStrLn stdout $ TL.unpack body
-        bs <- renderMail' mail
-        LBS.hPutStr stdout bs
-        LBS.hPutStr stdout "\n\n"
-        sendmail bs
+        -- Send to reciepent
+        sendmail' mail
+        -- Send to applicant
+        case mail' of
+            Nothing -> return ()
+            Just m -> sendmail' m
+
     pure $ ConfirmPage True
   where
+    proxyA = Proxy :: Proxy a
+
     body :: TL.Text
     body = TL.fromStrict $ T.pack $ render $ lomakePretty ajk
 
     subject :: Text
-    subject = lomakeEmailTitle (Proxy :: Proxy a) <> " " <> name
+    subject = lomakeEmailTitle proxyA <> " " <> name
 
     name :: Text
     name = lomakeSender ajk
 
     toAddresses :: NonEmpty Address
-    toAddresses = lomakeAddress (Proxy :: Proxy a)
+    toAddresses = lomakeAddress proxyA
 
     fromAddress :: Address
     fromAddress = Address (Just subject) "noreply@satakuntatalo.fi"

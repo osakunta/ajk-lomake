@@ -1,7 +1,7 @@
 language: haskell-stack
 
 env:
-  - GHCVER=7.10.2 STACK_YAML=stack-lts-5.yaml PEDANTIC=YES
+  - GHCVER=8.0.1 PEDANTIC=YES
 
 matrix:
   fast_finish: true

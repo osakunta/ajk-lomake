@@ -1,1 +1,5 @@
-stack-lts-5.yaml
+resolver: nightly-2016-11-11
+packages:
+- '.'
+extra-deps: []
+flags: {}

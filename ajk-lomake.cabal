@@ -45,6 +45,7 @@ library
     , http-client
     , http-client-tls
     , http-types
+    , HPDF
     , lens
     , lucid
     , markdown

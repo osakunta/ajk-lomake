@@ -38,6 +38,7 @@ import qualified Data.ByteString.Lazy     as LBS
 import qualified Data.List.NonEmpty       as NE
 import qualified Data.Text                as T
 import qualified Data.Text.Lazy           as TL
+import qualified Graphics.PDF             as PDF
 import qualified Network.Wai.Handler.Warp as Warp
 
 import Lomake
@@ -129,10 +130,16 @@ secondPost
 secondPost (LomakeResult _ Nothing) = pure $ ConfirmPage False
 secondPost (LomakeResult _ (Just ajk)) = do
     liftIO $ forM_ toAddresses $ \toAddress -> do
-        let mail  = simpleMail' toAddress fromAddress subject body :: Mail
+        let attachmentName = name <> ".pdf"
+        let mail
+                = addAttachmentBS "application/pdf" attachmentName pdfBS
+                $ simpleMail' toAddress fromAddress subject body :: Mail
             mail' = (\a -> mail { mailTo = [a] }) <$> lomakeSend ajk
         hPutStrLn stderr $ "Sending application from " <> T.unpack name <> " to " <> show toAddress
         hPutStrLn stdout $ TL.unpack body
+
+        LBS.writeFile "testi.pdf" pdfBS
+
         -- Send to reciepent
         sendmail' mail
         -- Send to applicant
@@ -146,6 +153,24 @@ secondPost (LomakeResult _ (Just ajk)) = do
 
     body :: TL.Text
     body = TL.fromStrict $ render $ lomakePretty ajk
+
+    pdfBS :: LBS.ByteString
+    pdfBS = PDF.pdfByteString PDF.standardDocInfo pdfRect pdf
+
+    -- https://www.gnu.org/software/gv/manual/html_node/Paper-Keywords-and-paper-size-in-points.html
+    pdfRect :: PDF.PDFRect
+    pdfRect = PDF.PDFRect 0 0 595 842
+
+    pdf :: PDF.PDF ()
+    pdf = do
+        page <- PDF.addPage Nothing
+        PDF.drawWithPage page $ do
+            PDF.drawText $ do
+                PDF.textStart 30 (842 - 30.0)
+                PDF.leading 10
+                PDF.renderMode PDF.FillText
+
+                renderDraw (lomakePretty ajk)
 
     subject :: Text
     subject = lomakeEmailTitle proxyA <> " " <> name

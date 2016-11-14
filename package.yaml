@@ -16,8 +16,8 @@ ghc-options: -Wall
 library:
   source-dirs: src
   dependencies:
-    - base                  >=4.7   && <4.9
-    - aeson                 >=0.8   && <0.11
+    - base                  >=4.9   && <4.10
+    - aeson                 >=1.0   && <1.1
     - aeson-compat
     - base-compat
     - bifunctors
@@ -27,6 +27,7 @@ library:
     - either
     - file-embed
     - generics-sop
+    - http-api-data
     - http-client
     - http-client-tls
     - http-types

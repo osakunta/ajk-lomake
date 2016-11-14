@@ -1,14 +1,15 @@
 {-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE DefaultSignatures   #-}
 {-# LANGUAGE FlexibleContexts    #-}
-{-# LANGUAGE GADTs               #-}
 {-# LANGUAGE FlexibleInstances   #-}
+{-# LANGUAGE GADTs               #-}
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE RankNTypes          #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell     #-}
 {-# LANGUAGE TypeFamilies        #-}
 {-# LANGUAGE TypeOperators       #-}
-{-# LANGUAGE TemplateHaskell #-}
+{-# OPTIONS_GHC -Wno-redundant-constraints #-}
 module Lomake (
     -- * Definition type
     D, D'(..), unD, d, dToMaybe,
@@ -66,14 +67,16 @@ import Data.Maybe     (fromMaybe)
 import Data.Semigroup ((<>))
 import Data.String    (fromString)
 import Data.Text      (Text)
-import GHC.TypeLits   (KnownSymbol, Symbol, symbolVal)
 import Generics.SOP
+import GHC.TypeLits   (KnownSymbol, Symbol, symbolVal)
 import Lucid
 
-import qualified Data.Map         as Map
-import qualified Data.Text        as T
-import qualified Data.Foldable    as F
-import qualified Servant
+import qualified Data.Foldable               as F
+import qualified Data.HashMap.Strict         as HM
+import qualified Data.Map                    as Map
+import qualified Data.Text                   as T
+import qualified Web.FormUrlEncoded
+import qualified Web.Internal.FormUrlEncoded as Form
 
 -------------------------------------------------------------------------------
 -- D
@@ -171,7 +174,6 @@ class HumanShow a where
 fieldInfos :: DatatypeInfo '[xs] -> NP FieldInfo xs
 fieldInfos (ADT _ _ (cs :* Nil)) = fieldInfos' cs
 fieldInfos (Newtype _ _ cs)      = fieldInfos' cs
-fieldInfos _                     = error "fieldInfos: impossible happened"
 
 fieldInfos' :: ConstructorInfo xs -> NP FieldInfo xs
 fieldInfos' (Constructor _name) = hpure (FieldInfo "")
@@ -289,7 +291,7 @@ instance (LomakeField a, KnownSymbol sym, KnownSymbol extra, SRequiredI req)
 -------------------------------------------------------------------------------
 
 sopView
-    :: forall a xs m. (Generic a, HasDatatypeInfo a, Code a ~ '[xs], All LomakeField' xs, Monad m)
+    :: forall a xs m. (HasDatatypeInfo a, Code a ~ '[xs], All LomakeField' xs, Monad m)
     => Proxy a -> LomakeEnv -> HtmlT m ()
 sopView _ env =
     sopView' (fieldInfos (datatypeInfo (Proxy :: Proxy a)))
@@ -402,7 +404,7 @@ lomakeText p = case srequired p of
 class LomakeSection a where
     lomakeSectionView :: Monad m => Proxy a -> LomakeEnv -> HtmlT m ()
     default lomakeSectionView
-        :: forall xs m. (Generic a, HasDatatypeInfo a, Code a ~ '[xs], All LomakeField' xs, Monad m)
+        :: forall xs m. (HasDatatypeInfo a, Code a ~ '[xs], All LomakeField' xs, Monad m)
         => Proxy a -> LomakeEnv -> HtmlT m ()
     lomakeSectionView = sopView
 
@@ -437,7 +439,7 @@ instance (LomakeSection a, KnownSymbol sym) => LomakeSection' (D sym 'Required a
         name = symbolVal (Proxy :: Proxy sym)
 
 sopFormView
-    :: forall a xs m. (Generic a, Code a ~ '[xs], All LomakeSection' xs, Monad m)
+    :: forall a xs m. (Code a ~ '[xs], All LomakeSection' xs, Monad m)
     => Proxy a -> LomakeEnv -> HtmlT m ()
 sopFormView _ env = sopView' (sList :: SList xs)
   where
@@ -476,7 +478,7 @@ sopFormPretty x = case from x of
 class LomakeForm a where
     lomakeView   :: Monad m => Proxy a -> LomakeEnv -> HtmlT m ()
     default lomakeView
-        :: forall xs m. (Generic a, Code a ~ '[xs], All LomakeSection' xs, Monad m)
+        :: forall xs m. (Code a ~ '[xs], All LomakeSection' xs, Monad m)
         => Proxy a -> LomakeEnv -> HtmlT m ()
     lomakeView = sopFormView
 
@@ -492,8 +494,10 @@ class LomakeForm a where
         => a -> Doc
     lomakePretty = sopFormPretty
 
-instance LomakeForm a => Servant.FromFormUrlEncoded (LomakeResult a) where
-    fromFormUrlEncoded = Right . runLomakeValidate lomakeValidate
+instance LomakeForm a => Form.FromForm (LomakeResult a) where
+    fromForm = Right . runLomakeValidate lomakeValidate . legacy . Form.unForm
+      where
+        legacy hm = [ (k, v) | (k, vs) <- HM.toList hm, v <- vs ]
 
 -------------------------------------------------------------------------------
 -- Text

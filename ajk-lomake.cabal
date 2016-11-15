@@ -39,6 +39,7 @@ library
     , containers
     , either
     , file-embed
+    , futurice-prelude
     , generics-sop
     , http-api-data
     , http-client
@@ -66,6 +67,7 @@ library
     , warp
   exposed-modules:
       Lomake
+      Lomake.Pretty
       SatO.AJK.Lomake
       SatO.AJK.Lomake.Asuntohaku
       SatO.AJK.Lomake.Classes
@@ -84,5 +86,4 @@ executable ajk-lomake-server
   build-depends:
       base
     , ajk-lomake
-    , hdaemonize
   default-language: Haskell2010

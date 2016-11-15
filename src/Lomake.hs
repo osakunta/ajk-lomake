@@ -55,13 +55,11 @@ module Lomake (
     SRequired(..),
     SRequiredI(..),
     -- * Pretty
-    text,
-    isEmpty,
-    ($$),
-    render,
+    module Lomake.Pretty,
     ) where
 
-import Control.Monad  (forM_, when)
+import Prelude ()
+import Futurice.Prelude hiding (Generic, from)
 import Data.Map       (Map)
 import Data.Maybe     (fromMaybe)
 import Data.Semigroup ((<>))
@@ -69,14 +67,17 @@ import Data.String    (fromString)
 import Data.Text      (Text)
 import Generics.SOP
 import GHC.TypeLits   (KnownSymbol, Symbol, symbolVal)
-import Lucid
+import Lucid hiding (for_)
 
+import qualified Lucid
 import qualified Data.Foldable               as F
 import qualified Data.HashMap.Strict         as HM
 import qualified Data.Map                    as Map
 import qualified Data.Text                   as T
 import qualified Web.FormUrlEncoded
 import qualified Web.Internal.FormUrlEncoded as Form
+
+import Lomake.Pretty
 
 -------------------------------------------------------------------------------
 -- D
@@ -165,7 +166,7 @@ opure p x = case srequired p of
 -------------------------------------------------------------------------------
 
 class HumanShow a where
-    humanShow :: a -> String
+    humanShow :: a -> Text
 
 -------------------------------------------------------------------------------
 -- SOP utilities
@@ -208,7 +209,7 @@ class LomakeField a where
 
     lomakeFieldPretty
         :: a
-        -> Doc
+        -> Field
 
 hasErrors :: LomakeEnv -> Text -> Maybe [Text]
 hasErrors (LomakeEnv errs _) name = Map.lookup name errs
@@ -220,7 +221,7 @@ submittedTextValue (LomakeEnv _ params) name = fromMaybe "" $
 
 -- | This can be used to resubmit the form.
 hiddenForm :: Monad m => LomakeEnv -> HtmlT m ()
-hiddenForm (LomakeEnv _ inputs) = forM_ inputs $ \(k, v) ->
+hiddenForm (LomakeEnv _ inputs) = for_ inputs $ \(k, v) ->
     input_ [type_ "hidden", name_ k, value_ v]
 
 class LomakeField' a where
@@ -237,14 +238,14 @@ class LomakeField' a where
 
     lomakeFieldPretty'
         :: a
-        -> Doc
+        -> (Text, Field) -- field name and actual field
 
 instance (LomakeField a, KnownSymbol sym, KnownSymbol extra, SRequiredI req)
     => LomakeField' (D' sym req a extra)
   where
     lomakeFieldView' _ env name = div_ [class_ cls] $ do
         div_ [class_ "large-4 columns"] $ do
-            label_ [class_ "text-right middle", for_ $ T.pack name] $ do
+            label_ [class_ "text-right middle", Lucid.for_ $ T.pack name] $ do
                 toHtml desc'
                 when (not $ T.null extra) $ do
                     br_ []
@@ -273,18 +274,13 @@ instance (LomakeField a, KnownSymbol sym, KnownSymbol extra, SRequiredI req)
             D val -> p val
         SOptional -> case x of
             D (Just val) -> p val
-            D Nothing    -> ""
+            D Nothing    -> (desc, EmptyField)
       where
-        p :: a -> Doc
-        p val =
-            let doc = lomakeFieldPretty val
-            in if isEmpty doc
-                then ""
-                else text (desc ++ ":") <+> pad <+> doc
+        p :: a -> (Text, Field)
+        p val = (desc, lomakeFieldPretty val)
 
         proxySym = Proxy :: Proxy sym
-        desc = symbolVal proxySym
-        pad = text $ replicate (40 - length desc) '.'
+        desc = T.pack $ symbolVal proxySym
 
 -------------------------------------------------------------------------------
 -- SOP magic
@@ -318,14 +314,11 @@ sopForm = to . SOP . Z <$> hsequence (sopForm' (fieldInfos (datatypeInfo (Proxy 
 
 sopPretty
     :: forall a xs. (Generic a, HasDatatypeInfo a, Code a ~ '[xs],  All LomakeField' xs)
-    => a -> Doc
+    => a -> [(Text, Field)]
 sopPretty x = case from x of
-    (SOP (Z x')) -> sopPretty' x'
+    (SOP (Z xs)) -> hcollapse $
+        hcmap (Proxy :: Proxy LomakeField') (K . lomakeFieldPretty' . unI) xs
     _            -> error "sopPretty: impossible happened"
-  where
-    sopPretty' :: forall ys. All LomakeField' ys => NP I ys -> Doc
-    sopPretty' Nil = mempty
-    sopPretty' (I y :* ys) = lomakeFieldPretty' y $$ sopPretty' ys
 
 -------------------------------------------------------------------------------
 -- LomakeValidate
@@ -414,16 +407,16 @@ class LomakeSection a where
         => LomakeValidate a
     lomakeSectionForm = sopForm
 
-    lomakeSectionPretty :: a -> Doc
+    lomakeSectionPretty :: a -> [(Text, Field)]
     default lomakeSectionPretty
         :: forall xs. (Generic a, HasDatatypeInfo a, Code a ~ '[xs],  All LomakeField' xs)
-        => a -> Doc
+        => a -> [(Text, Field)]
     lomakeSectionPretty = sopPretty
 
 class LomakeSection' a where
     lomakeSectionView' :: Monad m => Proxy a -> LomakeEnv -> HtmlT m ()
     lomakeSectionForm' :: LomakeValidate a
-    lomakeSectionPretty' :: a -> Doc
+    lomakeSectionPretty' :: a -> Section
 
 instance (LomakeSection a, KnownSymbol sym) => LomakeSection' (D sym 'Required a) where
     lomakeSectionView' _ env = do
@@ -433,10 +426,10 @@ instance (LomakeSection a, KnownSymbol sym) => LomakeSection' (D sym 'Required a
 
     lomakeSectionForm' = D <$> lomakeSectionForm
 
-    lomakeSectionPretty' (D x) =
-        text name $$ text ('=' <$ name) $$ lomakeSectionPretty x $$ text "\n"
-      where
-        name = symbolVal (Proxy :: Proxy sym)
+    lomakeSectionPretty' (D x) = Section
+        { _secName = T.pack $ symbolVal (Proxy :: Proxy sym)
+        , _secFields = lomakeSectionPretty x
+        }
 
 sopFormView
     :: forall a xs m. (Code a ~ '[xs], All LomakeSection' xs, Monad m)
@@ -462,14 +455,11 @@ sopFormValidate = to . SOP . Z <$> hsequence sopValidate'
 
 sopFormPretty
     :: forall a xs. (Generic a, Code a ~ '[xs],  All LomakeSection' xs)
-    => a -> Doc
+    => a -> [Section]
 sopFormPretty x = case from x of
-    SOP (Z x') -> sopPretty' x'
+    SOP (Z xs) -> hcollapse $
+        hcmap (Proxy :: Proxy LomakeSection') (K . lomakeSectionPretty' . unI) xs
     _          -> error "sopFormPretty: impossible happened"
-  where
-    sopPretty' :: forall ys. All LomakeSection' ys => NP I ys -> Doc
-    sopPretty' Nil = mempty
-    sopPretty' (I y :* ys) = lomakeSectionPretty' y $$ sopPretty' ys
 
 -------------------------------------------------------------------------------
 -- Form
@@ -488,10 +478,10 @@ class LomakeForm a where
         => LomakeValidate a
     lomakeValidate = sopFormValidate
 
-    lomakePretty    :: a -> Doc
+    lomakePretty    :: a -> [Section]
     default lomakePretty
         :: forall xs. (Generic a, Code a ~ '[xs],  All LomakeSection' xs)
-        => a -> Doc
+        => a -> [Section]
     lomakePretty = sopFormPretty
 
 instance LomakeForm a => Form.FromForm (LomakeResult a) where
@@ -504,7 +494,7 @@ instance LomakeForm a => Form.FromForm (LomakeResult a) where
 -------------------------------------------------------------------------------
 
 instance LomakeField Text where
-    lomakeFieldPretty = text . T.unpack
+    lomakeFieldPretty = ShortField
     lomakeFieldView _ env name =
         input_ [type_ "text", name_  name, value_ $ submittedTextValue env name]
     lomakeFieldValidate _ = lomakeText
@@ -514,7 +504,7 @@ instance LomakeField Text where
 -------------------------------------------------------------------------------
 
 instance HumanShow Bool where
-    humanShow = bool "Kyllä" "Ei"
+    humanShow = bool "Ei" "Kyllä"
 
 instance LomakeEnum Bool where
     universe = [True, False]
@@ -522,11 +512,7 @@ instance LomakeEnum Bool where
 instance LomakeField Bool where
     lomakeFieldView = enumLomakeFieldView
     lomakeFieldValidate = enumLomakeFieldValidate
-    lomakeFieldPretty = text . humanShow
-
-bool :: a -> a -> Bool -> a
-bool t _ True  = t
-bool _ f False = f
+    lomakeFieldPretty = ShortField . humanShow
 
 -------------------------------------------------------------------------------
 -- Enum
@@ -571,27 +557,3 @@ forMSep_ :: Applicative m => [a] -> m c -> (a -> m b) -> m ()
 forMSep_ [] _ _     = pure ()
 forMSep_ [x] _ f    = f x *> pure ()
 forMSep_ (x:xs) s f = f x *> s *> forMSep_ xs s f
-
--------------------------------------------------------------------------------
--- Pretty
--------------------------------------------------------------------------------
-
-type Doc = Text
-
-text :: String -> Doc
-text = T.pack
-
-($$) :: Doc -> Doc -> Doc
-a $$ b
-    | T.null a  = b
-    | T.null b  = a
-    | otherwise = a <> "\n" <> b
-
-(<+>) :: Doc -> Doc -> Doc
-a <+> b = a <> " " <> b
-
-isEmpty :: Doc -> Bool
-isEmpty = T.null
-
-render :: Doc -> String
-render = T.unpack

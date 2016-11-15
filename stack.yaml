@@ -1,5 +1,16 @@
 resolver: nightly-2016-11-11
 packages:
 - '.'
-extra-deps: []
+- location:
+    git: https://github.com/futurice/haskell-futurice-prelude.git
+    commit: 0bdc712af6ec40bcb243205650bf1396ff4861f1
+  extra-dep: true
+- location:
+    git: https://github.com/necrobious/uuid-aeson.git
+    commit: f5fd573c7cb098515d0093acb2879520e190cc08
+  extra-dep: true
+extra-deps:
+- ansi-pretty-0.1.2.0
+- lens-4.15.1
 flags: {}
+extra-package-dbs: []

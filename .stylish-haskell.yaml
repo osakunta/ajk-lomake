@@ -9,6 +9,7 @@ steps:
         - Prelude
         - Prelude.Compat
         - Futurice.Prelude
+        - PlanMill.Internal.Prelude
   - language_pragmas:
       style: vertical
       remove_redundant: true

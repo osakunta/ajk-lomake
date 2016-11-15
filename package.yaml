@@ -26,6 +26,7 @@ library:
     - containers
     - either
     - file-embed
+    - futurice-prelude
     - generics-sop
     - http-api-data
     - http-client
@@ -60,4 +61,3 @@ executables:
     dependencies:
       - base
       - ajk-lomake
-      - hdaemonize

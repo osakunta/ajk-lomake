@@ -145,7 +145,7 @@ secondPost (LomakeResult _ (Just ajk)) = do
     proxyA = Proxy :: Proxy a
 
     body :: TL.Text
-    body = TL.fromStrict $ T.pack $ render $ lomakePretty ajk
+    body = TL.fromStrict $ render $ lomakePretty ajk
 
     subject :: Text
     subject = lomakeEmailTitle proxyA <> " " <> name

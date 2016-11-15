@@ -7,10 +7,11 @@
 {-# LANGUAGE UndecidableInstances #-}
 module SatO.AJK.Lomake.LongText where
 
+import Prelude ()
+import Futurice.Prelude
 import Data.Char          (isDigit)
 import Data.Proxy         (Proxy (..))
-import Data.Semigroup     ((<>))
-import Data.Text          (Text, pack, unpack)
+import Data.Text          (pack)
 import Data.Type.Equality
 import GHC.TypeLits       (KnownSymbol, Symbol, symbolVal)
 import Lomake
@@ -23,7 +24,7 @@ newtype LongText = LongText Text
 instance LomakeField LongText where
     lomakeFieldView _ env name =
        textarea_ [name_ name] $ toHtml $ submittedTextValue env name
-    lomakeFieldPretty (LongText t) = "\n" <> lomakeFieldPretty t <> "\n"
+    lomakeFieldPretty (LongText t) = LongField t
     lomakeFieldValidate _proxyA proxyReq = (fmap . ofmap proxyReq) LongText . lomakeText proxyReq
 
 newtype FancyText (sym :: Symbol) = FancyText { getFancyText :: Text }
@@ -42,7 +43,7 @@ instance
         input_ [type_ t, name_  name, value_ $ submittedTextValue env name]
       where
         t = pack $ symbolVal (Proxy :: Proxy sym)
-    lomakeFieldPretty = text . unpack . getFancyText
+    lomakeFieldPretty = ShortField . getFancyText
 
     lomakeFieldValidate _ p name =
         ovalidate p v $ lomakeText p name

@@ -149,14 +149,14 @@ instance LomakeForm Asuntohaku
 -------------------------------------------------------------------------------
 
 instance HumanShow Siv where
-    humanShow = show
+    humanShow = T.pack . show
 
 instance LomakeEnum Siv
 
 instance LomakeField Siv where
     lomakeFieldView   = enumLomakeFieldView
     lomakeFieldValidate  = enumLomakeFieldValidate
-    lomakeFieldPretty = text . humanShow
+    lomakeFieldPretty = ShortField . humanShow
 
 -------------------------------------------------------------------------------
 -- Parents
@@ -173,7 +173,7 @@ instance LomakeEnum Parents
 instance LomakeField Parents where
     lomakeFieldView   = enumLomakeFieldView
     lomakeFieldValidate  = enumLomakeFieldValidate
-    lomakeFieldPretty = text . humanShow
+    lomakeFieldPretty = ShortField . humanShow
 
 -------------------------------------------------------------------------------
 -- Jasen
@@ -188,7 +188,7 @@ instance LomakeEnum Jasen
 instance LomakeField Jasen where
     lomakeFieldView = enumLomakeFieldView
     lomakeFieldValidate = enumLomakeFieldValidate
-    lomakeFieldPretty = text . humanShow
+    lomakeFieldPretty = ShortField . humanShow
 
 -------------------------------------------------------------------------------
 -- Toistaieksi
@@ -203,7 +203,7 @@ instance LomakeEnum Toistaiseksi
 instance LomakeField Toistaiseksi where
     lomakeFieldView = enumLomakeFieldView
     lomakeFieldValidate = enumLomakeFieldValidate
-    lomakeFieldPretty = text . humanShow
+    lomakeFieldPretty = ShortField . humanShow
 
 -------------------------------------------------------------------------------
 -- Classes

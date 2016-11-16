@@ -68,6 +68,7 @@ library
     , warp
   exposed-modules:
       Lomake
+      Lomake.PDF
       Lomake.Pretty
       SatO.AJK.Lomake
       SatO.AJK.Lomake.Asuntohaku

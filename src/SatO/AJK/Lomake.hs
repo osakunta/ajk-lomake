@@ -42,6 +42,7 @@ import qualified Graphics.PDF             as PDF
 import qualified Network.Wai.Handler.Warp as Warp
 
 import Lomake
+import Lomake.PDF
 
 import SatO.AJK.Lomake.Asuntohaku
 import SatO.AJK.Lomake.Classes
@@ -155,22 +156,18 @@ secondPost (LomakeResult _ (Just ajk)) = do
     body = TL.fromStrict $ render $ lomakePretty ajk
 
     pdfBS :: LBS.ByteString
-    pdfBS = PDF.pdfByteString PDF.standardDocInfo pdfRect pdf
-
-    -- https://www.gnu.org/software/gv/manual/html_node/Paper-Keywords-and-paper-size-in-points.html
-    pdfRect :: PDF.PDFRect
-    pdfRect = PDF.PDFRect 0 0 595 842
+    pdfBS = PDF.pdfByteString PDF.standardDocInfo a4rect pdf
 
     pdf :: PDF.PDF ()
     pdf = do
         page <- PDF.addPage Nothing
         PDF.drawWithPage page $ do
             PDF.drawText $ do
-                PDF.textStart 72 (842 - 72)
+                PDF.textStart pointsPerInch (a4height - pointsPerInch)
                 PDF.leading 12
                 PDF.renderMode PDF.FillText
 
-                renderDraw (lomakePretty ajk)
+                renderPDFText (lomakeEmailTitle proxyA) (lomakePretty ajk)
 
     subject :: Text
     subject = lomakeEmailTitle proxyA <> " " <> name

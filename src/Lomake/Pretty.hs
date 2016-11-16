@@ -10,7 +10,6 @@ import Futurice.Prelude
 import Control.Lens     (maximumOf, filtered, to)
 
 import qualified Data.Text as T
-import qualified Graphics.PDF             as PDF
 
 data Section = Section
     { _secName   :: !Text
@@ -47,36 +46,3 @@ render ss = foldMap renderSection ss
         f <> "\n\n"
 
     renderField _ _ = ""
-
-renderDraw :: [Section] -> PDF.PDFText ()
-renderDraw = traverse_ renderSection
-  where
-    renderSection (Section n fs) = do
-        PDF.setFont fieldNameFont
-        PDF.displayText $ PDF.toPDFString $ T.unpack n
-        PDF.startNewLine
-
-        traverse_ (uncurry renderField) fs
-        PDF.startNewLine
-
-    renderField n (ShortField f) | not (T.null f) = do
-        PDF.setFont fieldNameFont
-        PDF.displayText $ PDF.toPDFString $ T.unpack $ n <> ": "
-        PDF.setFont fieldValueFont
-        PDF.displayText $ PDF.toPDFString $ T.unpack f
-        PDF.startNewLine
-
-    renderField n (LongField f) | not (T.null f) = do
-        PDF.setFont fieldNameFont
-        PDF.displayText $ PDF.toPDFString $ T.unpack $ n <> ":"
-        PDF.startNewLine
-        PDF.setFont fieldValueFont
-        for_ (T.lines f) $ \l -> do
-            PDF.displayText $ PDF.toPDFString $ T.unpack l
-            PDF.startNewLine
-        PDF.startNewLine
-
-    renderField _ _ = pure ()
-
-    fieldNameFont = PDF.PDFFont PDF.Helvetica_Bold 10
-    fieldValueFont = PDF.PDFFont PDF.Helvetica 10

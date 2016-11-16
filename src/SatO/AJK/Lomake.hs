@@ -13,6 +13,8 @@ module SatO.AJK.Lomake (
     Page(..),
     ) where
 
+import Prelude ()
+import Futurice.Prelude
 import Control.Exception         (SomeException)
 import Control.Monad             (forM_, when)
 import Control.Monad.IO.Class    (MonadIO (..))
@@ -24,7 +26,7 @@ import Data.Reflection           (give)
 import Data.Semigroup            ((<>))
 import Data.String               (fromString)
 import Data.Text                 (Text)
-import Lucid
+import Lucid                     hiding (for_)
 import Network.HTTP.Types.Status (status500)
 import Network.Mail.Mime
 import Network.Wai
@@ -159,15 +161,9 @@ secondPost (LomakeResult _ (Just ajk)) = do
     pdfBS = PDF.pdfByteString PDF.standardDocInfo a4rect pdf
 
     pdf :: PDF.PDF ()
-    pdf = do
+    pdf = for_ (renderPDFText subject (lomakePretty ajk)) $ \draw -> do
         page <- PDF.addPage Nothing
-        PDF.drawWithPage page $ do
-            PDF.drawText $ do
-                PDF.textStart pointsPerInch (a4height - pointsPerInch)
-                PDF.leading 12
-                PDF.renderMode PDF.FillText
-
-                renderPDFText (lomakeEmailTitle proxyA) (lomakePretty ajk)
+        PDF.drawWithPage page draw
 
     subject :: Text
     subject = lomakeEmailTitle proxyA <> " " <> name

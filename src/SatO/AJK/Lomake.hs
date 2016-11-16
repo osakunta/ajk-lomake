@@ -166,8 +166,8 @@ secondPost (LomakeResult _ (Just ajk)) = do
         page <- PDF.addPage Nothing
         PDF.drawWithPage page $ do
             PDF.drawText $ do
-                PDF.textStart 30 (842 - 30.0)
-                PDF.leading 10
+                PDF.textStart 72 (842 - 72)
+                PDF.leading 12
                 PDF.renderMode PDF.FillText
 
                 renderDraw (lomakePretty ajk)

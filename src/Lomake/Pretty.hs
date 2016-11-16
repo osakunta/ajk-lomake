@@ -52,7 +52,7 @@ renderDraw :: [Section] -> PDF.PDFText ()
 renderDraw = traverse_ renderSection
   where
     renderSection (Section n fs) = do
-        PDF.setFont $ PDF.PDFFont PDF.Helvetica_Bold 10
+        PDF.setFont fieldNameFont
         PDF.displayText $ PDF.toPDFString $ T.unpack n
         PDF.startNewLine
 
@@ -60,19 +60,23 @@ renderDraw = traverse_ renderSection
         PDF.startNewLine
 
     renderField n (ShortField f) | not (T.null f) = do
-        PDF.setFont $ PDF.PDFFont PDF.Helvetica_Bold 10
+        PDF.setFont fieldNameFont
         PDF.displayText $ PDF.toPDFString $ T.unpack $ n <> ": "
-        PDF.setFont $ PDF.PDFFont PDF.Helvetica 10
+        PDF.setFont fieldValueFont
         PDF.displayText $ PDF.toPDFString $ T.unpack f
         PDF.startNewLine
 
     renderField n (LongField f) | not (T.null f) = do
-        PDF.setFont $ PDF.PDFFont PDF.Helvetica_Bold 10
+        PDF.setFont fieldNameFont
         PDF.displayText $ PDF.toPDFString $ T.unpack $ n <> ":"
         PDF.startNewLine
-        PDF.setFont $ PDF.PDFFont PDF.Helvetica 10
-        PDF.displayText $ PDF.toPDFString $ T.unpack f
-        PDF.startNewLine
+        PDF.setFont fieldValueFont
+        for_ (T.lines f) $ \l -> do
+            PDF.displayText $ PDF.toPDFString $ T.unpack l
+            PDF.startNewLine
         PDF.startNewLine
 
     renderField _ _ = pure ()
+
+    fieldNameFont = PDF.PDFFont PDF.Helvetica_Bold 10
+    fieldValueFont = PDF.PDFFont PDF.Helvetica 10

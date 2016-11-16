@@ -62,6 +62,7 @@ instance LomakeName Sisainen where
     lomakeTitle _ = "Satalinnan Säätion sisäinen asuntohaku"
     lomakeEmailTitle _ = "Sisäinen Asuntohakemus"
     lomakePreamble _ = Just "Kaikki hakemisen kannalta olennainen kannattaa mainita. Eniten valintaan vaikuttaa aktiivisuus osakunnalla ja säätiössä. Kaikki tiedot käsitellään luottamuksellisesti."
+    lomakePdf _ = True
 
 instance LomakeEmail Sisainen where
     lomakeSender sis = etu

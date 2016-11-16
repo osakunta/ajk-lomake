@@ -133,15 +133,11 @@ secondPost
 secondPost (LomakeResult _ Nothing) = pure $ ConfirmPage False
 secondPost (LomakeResult _ (Just ajk)) = do
     liftIO $ forM_ toAddresses $ \toAddress -> do
-        let attachmentName = name <> ".pdf"
-        let mail
-                = addAttachmentBS "application/pdf" attachmentName pdfBS
+        let mail = addPdfAttachments
                 $ simpleMail' toAddress fromAddress subject body :: Mail
             mail' = (\a -> mail { mailTo = [a] }) <$> lomakeSend ajk
         hPutStrLn stderr $ "Sending application from " <> T.unpack name <> " to " <> show toAddress
         hPutStrLn stdout $ TL.unpack body
-
-        LBS.writeFile "testi.pdf" pdfBS
 
         -- Send to reciepent
         sendmail' mail
@@ -153,6 +149,11 @@ secondPost (LomakeResult _ (Just ajk)) = do
     pure $ ConfirmPage True
   where
     proxyA = Proxy :: Proxy a
+
+    addPdfAttachments
+        | lomakePdf proxyA =
+            addAttachmentBS "application/pdf" pdfName pdfBS
+        | otherwise = id
 
     body :: TL.Text
     body = TL.fromStrict $ render $ lomakePretty ajk
@@ -170,6 +171,9 @@ secondPost (LomakeResult _ (Just ajk)) = do
 
     name :: Text
     name = lomakeSender ajk
+
+    pdfName :: Text
+    pdfName = T.replace " " "-" (T.takeWhile (/= '<') name) <> ".pdf"
 
     toAddresses :: NonEmpty Address
     toAddresses = lomakeAddress proxyA

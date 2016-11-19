@@ -45,6 +45,7 @@ library
     , http-client
     , http-client-tls
     , http-types
+    , HPDF
     , lens
     , lucid
     , markdown
@@ -67,6 +68,7 @@ library
     , warp
   exposed-modules:
       Lomake
+      Lomake.PDF
       Lomake.Pretty
       SatO.AJK.Lomake
       SatO.AJK.Lomake.Asuntohaku

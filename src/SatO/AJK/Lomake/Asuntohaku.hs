@@ -214,6 +214,7 @@ instance LomakeName Asuntohaku where
     lomakeTitle _ = "Hakulomake Satalinnan Säätion vuokraamiin huoneistoihin"
     lomakeEmailTitle _ = "Asuntohakemus"
     lomakePreamble _ = Just "Panostathan hakemukseen, sillä valinnat tehdään hakemusten perusteella."
+    lomakePdf _ = True
 
 instance LomakeEmail Asuntohaku where
     lomakeSender ajk = name <> " " <> lastname

@@ -46,4 +46,3 @@ render ss = foldMap renderSection ss
         f <> "\n\n"
 
     renderField _ _ = ""
-

@@ -13,7 +13,10 @@ module SatO.AJK.Lomake (
     Page(..),
     ) where
 
+import Prelude ()
+import Futurice.Prelude
 import Control.Exception         (SomeException)
+import Control.Lens              (ifor_)
 import Control.Monad             (forM_, when)
 import Control.Monad.IO.Class    (MonadIO (..))
 import Data.FileEmbed            (embedStringFile)
@@ -24,7 +27,7 @@ import Data.Reflection           (give)
 import Data.Semigroup            ((<>))
 import Data.String               (fromString)
 import Data.Text                 (Text)
-import Lucid
+import Lucid                     hiding (for_)
 import Network.HTTP.Types.Status (status500)
 import Network.Mail.Mime
 import Network.Wai
@@ -38,9 +41,11 @@ import qualified Data.ByteString.Lazy     as LBS
 import qualified Data.List.NonEmpty       as NE
 import qualified Data.Text                as T
 import qualified Data.Text.Lazy           as TL
+import qualified Graphics.PDF             as PDF
 import qualified Network.Wai.Handler.Warp as Warp
 
 import Lomake
+import Lomake.PDF
 
 import SatO.AJK.Lomake.Asuntohaku
 import SatO.AJK.Lomake.Classes
@@ -129,10 +134,12 @@ secondPost
 secondPost (LomakeResult _ Nothing) = pure $ ConfirmPage False
 secondPost (LomakeResult _ (Just ajk)) = do
     liftIO $ forM_ toAddresses $ \toAddress -> do
-        let mail  = simpleMail' toAddress fromAddress subject body :: Mail
+        let mail = addPdfAttachments
+                $ simpleMail' toAddress fromAddress subject body :: Mail
             mail' = (\a -> mail { mailTo = [a] }) <$> lomakeSend ajk
         hPutStrLn stderr $ "Sending application from " <> T.unpack name <> " to " <> show toAddress
         hPutStrLn stdout $ TL.unpack body
+
         -- Send to reciepent
         sendmail' mail
         -- Send to applicant
@@ -144,14 +151,31 @@ secondPost (LomakeResult _ (Just ajk)) = do
   where
     proxyA = Proxy :: Proxy a
 
+    addPdfAttachments
+        | lomakePdf proxyA =
+            addAttachmentBS "application/pdf" pdfName pdfBS
+        | otherwise = id
+
     body :: TL.Text
     body = TL.fromStrict $ render $ lomakePretty ajk
+
+    pdfBS :: LBS.ByteString
+    pdfBS = PDF.pdfByteString PDF.standardDocInfo a4rect pdf
+
+    pdf :: PDF.PDF ()
+    pdf = ifor_ (renderPDFText subject (lomakePretty ajk)) $ \n draw -> do
+        page <- PDF.addPage Nothing
+        PDF.drawWithPage page (renderPDFFooter n subject)
+        PDF.drawWithPage page draw
 
     subject :: Text
     subject = lomakeEmailTitle proxyA <> " " <> name
 
     name :: Text
     name = lomakeSender ajk
+
+    pdfName :: Text
+    pdfName = T.replace " " "-" (T.takeWhile (/= '<') name) <> ".pdf"
 
     toAddresses :: NonEmpty Address
     toAddresses = lomakeAddress proxyA

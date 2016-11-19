@@ -16,6 +16,7 @@ module SatO.AJK.Lomake (
 import Prelude ()
 import Futurice.Prelude
 import Control.Exception         (SomeException)
+import Control.Lens              (ifor_)
 import Control.Monad             (forM_, when)
 import Control.Monad.IO.Class    (MonadIO (..))
 import Data.FileEmbed            (embedStringFile)
@@ -162,8 +163,9 @@ secondPost (LomakeResult _ (Just ajk)) = do
     pdfBS = PDF.pdfByteString PDF.standardDocInfo a4rect pdf
 
     pdf :: PDF.PDF ()
-    pdf = for_ (renderPDFText subject (lomakePretty ajk)) $ \draw -> do
+    pdf = ifor_ (renderPDFText subject (lomakePretty ajk)) $ \n draw -> do
         page <- PDF.addPage Nothing
+        PDF.drawWithPage page (renderPDFFooter n subject)
         PDF.drawWithPage page draw
 
     subject :: Text

@@ -111,6 +111,13 @@ halves ys@(x : xs) = ([], ys) :
 -- Render
 -------------------------------------------------------------------------------
 
+renderPDFFooter :: Int -> Text -> PDF.Draw ()
+renderPDFFooter n title
+    = PDF.drawText
+    $ PDF.text footerFont margin (margin / 2)
+    $ textToPDFString
+    $ title <> " - " <> "sivu " <> textShow (n + 1)
+
 renderPDFText :: Text -> [Section] -> [PDF.Draw ()]
 renderPDFText title sections = do
     let commands = Title (textToPDFString title) : calculateCommands sections
@@ -178,3 +185,6 @@ fieldNameFont = PDF.PDFFont PDF.Helvetica_Bold 10
 
 fieldValueFont :: PDFFont
 fieldValueFont = PDF.PDFFont PDF.Helvetica 10
+
+footerFont :: PDFFont
+footerFont = PDF.PDFFont PDF.Helvetica 8

@@ -87,7 +87,7 @@ data Satakunta = Satakunta
     }
 
 data Osakunta = Osakunta
-    { osakuntaKirja :: D "Osakuntaan kirjoittautumisen lukukausi ja vuosi" 'Required Text
+    { osakuntaKirja :: D "Osakuntaan kirjoittautumisen lukukausi ja vuosi" 'Optional Text
     , osakuntaJasen :: D "Hakija on Satakuntalaisen osakunnan"             'Optional Jasen
     }
 

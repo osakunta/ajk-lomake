@@ -32,15 +32,15 @@ script:
 matrix:
   fast_finish: true
   include:
-  - env: GHCVER=8.0.1 PEDANTIC=YES
+  - env: GHCVER=8.0.2 PEDANTIC=YES
     addons:
       apt:
         sources:
         - hvr-ghc
         packages:
-        - ghc-8.0.1
+        - ghc-8.0.2
         - libgmp-dev
-    compiler: ! ': # ghc-8.0.1'
+    compiler: ! ': # ghc-8.0.2'
 branches:
   only:
   - master

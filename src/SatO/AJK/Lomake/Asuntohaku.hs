@@ -57,15 +57,15 @@ data Studies = Studies
     }
 
 data Talous = Talous
-    { talousTulo        :: D "Verotettava tulo vuonna 2015"                                     'Required Text
-    , talousVar         :: D "Verotettava varallisuus vuonna 2015"                              'Required Text
-    , talousBrutto      :: D "Bruttotulot vuodelta 2015"                                        'Required Text
-    , talousArvio       :: D "Arvio bruttotuloista vuonna 2016"                                 'Required Text
-    , talousLaatu       :: D "Tulon laatu 2016 (ansio-, eläke-, pääoma-, vuokra- tai muu tulo)" 'Required Text
-    , talousEmployer    :: D "Työnantaja vuonna 2016"                                           'Optional Text
-    , talousPuolisoTulo :: D "Arvio puolison bruttotuloista vuonna 2016"                        'Optional Text
+    { talousTulo        :: D "Verotettava tulo vuonna 2016"                                     'Required Text
+    , talousVar         :: D "Verotettava varallisuus vuonna 2016"                              'Required Text
+    , talousBrutto      :: D "Bruttotulot vuodelta 2016"                                        'Required Text
+    , talousArvio       :: D "Arvio bruttotuloista vuonna 2017"                                 'Required Text
+    , talousLaatu       :: D "Tulon laatu 2017 (ansio-, eläke-, pääoma-, vuokra- tai muu tulo)" 'Required Text
+    , talousEmployer    :: D "Työnantaja vuonna 2017"                                           'Optional Text
+    , talousPuolisoTulo :: D "Arvio puolison bruttotuloista vuonna 2017"                        'Optional Text
     , talousPuolisoJob  :: D "Puolison ammatti"                                                 'Optional Text
-    , talousApuraha     :: D "Apurahat vuosina 2013-2016 (myöntäjä ja määrä)"                   'Optional Text
+    , talousApuraha     :: D "Apurahat vuosina 2013-2017 (myöntäjä ja määrä)"                   'Optional Text
     }
 
 data Family = Family

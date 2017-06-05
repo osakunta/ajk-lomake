@@ -1,7 +1,7 @@
 name: ajk-lomake
 version: 0.1.0.0
-synopsis: AJK form 
-description: Jee jee 
+synopsis: AJK form
+description: Jee jee
 author: Oleg Grenrus <oleg.grenrus@iki.fi>
 maintainer: Oleg Grenrus <oleg.grenrus@iki.fi>
 license: BSD3
@@ -17,7 +17,7 @@ library:
   source-dirs: src
   dependencies:
     - base                  >=4.9   && <4.10
-    - aeson                 >=1.0   && <1.1
+    - aeson
     - aeson-compat
     - base-compat
     - bifunctors
@@ -39,7 +39,7 @@ library:
     - mime-mail
     - mtl
     - pretty
-    - reflection >= 2.1
+    - reflection
     - semigroups
     - servant
     - servant-lucid

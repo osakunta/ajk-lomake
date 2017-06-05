@@ -3,7 +3,7 @@
 module Lomake.PDF where
 
 import Prelude ()
-import Futurice.Prelude
+import Futurice.Prelude           hiding (put, get)
 import Control.Monad.State.Strict (StateT, evalStateT, get, put)
 import Control.Monad.Trans.Class  (lift)
 import Data.Maybe                 (listToMaybe)

@@ -1,4 +1,4 @@
--- This file has been generated from package.yaml by hpack version 0.14.1.
+-- This file has been generated from package.yaml by hpack version 0.17.0.
 --
 -- see: https://github.com/sol/hpack
 
@@ -30,7 +30,7 @@ library
   ghc-options: -Wall
   build-depends:
       base                  >=4.9   && <4.10
-    , aeson                 >=1.0   && <1.1
+    , aeson
     , aeson-compat
     , base-compat
     , bifunctors
@@ -52,7 +52,7 @@ library
     , mime-mail
     , mtl
     , pretty
-    , reflection >= 2.1
+    , reflection
     , semigroups
     , servant
     , servant-lucid

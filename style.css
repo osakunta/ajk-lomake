@@ -7,3 +7,7 @@ input { font-size: 14pt; }
 .error label { color: #c00;  }
 
 textarea { height: 10em; }
+
+@media screen and (max-width: 64em) {
+  .middle-text-left { text-align: left; }
+}

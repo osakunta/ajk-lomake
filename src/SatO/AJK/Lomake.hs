@@ -78,7 +78,7 @@ type AJKLomakeAPI =
 
 instance (LomakeForm a, LomakeName a) => ToHtml (Page a) where
     toHtmlRaw _ = pure ()
-    toHtml (Page (LomakeResult env v)) = page_ t$ do
+    toHtml (Page (LomakeResult env v)) = page_ t $ do
         case v of
             Nothing -> do
                 form_ [action_ $ "/" <> lomakeShortName p <> "/" , method_ "POST"] $ do

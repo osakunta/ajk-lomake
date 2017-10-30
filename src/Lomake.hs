@@ -245,7 +245,7 @@ instance (LomakeField a, KnownSymbol sym, KnownSymbol extra, SRequiredI req)
   where
     lomakeFieldView' _ env name = div_ [class_ cls] $ do
         div_ [class_ "large-4 columns"] $ do
-            label_ [class_ "text-right middle", Lucid.for_ $ T.pack name] $ do
+            label_ [class_ "text-right middle-text-left middle", Lucid.for_ $ T.pack name] $ do
                 toHtml desc'
                 when (not $ T.null extra) $ do
                     br_ []

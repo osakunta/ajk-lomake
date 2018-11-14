@@ -1,21 +1,19 @@
--- This file has been generated from package.yaml by hpack version 0.18.1.
---
--- see: https://github.com/sol/hpack
-
+cabal-version:  2.2
 name:           ajk-lomake
-version:        0.1.0.0
+version:        0
+
 synopsis:       AJK form
-description:    Jee jee
+description:    Jee jee jee
 category:       Web
+
 homepage:       https://github.com/osakunta/ajk-lomake#readme
 bug-reports:    https://github.com/osakunta/ajk-lomake/issues
 author:         Oleg Grenrus <oleg.grenrus@iki.fi>
 maintainer:     Oleg Grenrus <oleg.grenrus@iki.fi>
-license:        BSD3
+license:        BSD-3-Clause
 license-file:   LICENSE
-tested-with:    GHC==7.10.3
 build-type:     Simple
-cabal-version:  >= 1.10
+tested-with:    GHC==8.4.4
 
 extra-source-files:
     README.md
@@ -29,7 +27,7 @@ library
       src
   ghc-options: -Wall
   build-depends:
-      base                  >=4.9   && <4.10
+      base                  ^>=4.11.1.0
     , aeson
     , aeson-compat
     , base-compat

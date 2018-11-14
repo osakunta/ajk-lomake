@@ -1,8 +1,0 @@
-default: dev
-envs:
-  dev:
-    PORT: "8080"
-    LOMAKE_EMAILADDR:
-      secret: own-email
-    LOMAKE_HUOLTO_EMAILADDR:
-      secret: own-emails

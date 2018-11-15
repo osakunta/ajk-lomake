@@ -1,3 +1,4 @@
-.stack-work/
-dist
 run.sh
+dist-newstyle/
+cabal.project.freeze
+.ghc.environment.*

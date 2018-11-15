@@ -17,6 +17,8 @@ tested-with:    GHC==8.4.4
 
 extra-source-files:
     README.md
+    foundation-6/css/foundation.min.css
+    style.css
 
 source-repository head
   type: git

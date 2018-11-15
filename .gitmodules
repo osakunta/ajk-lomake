@@ -1,3 +1,3 @@
 [submodule "haskell-futurice-prelude"]
 	path = haskell-futurice-prelude
-	url = git@github.com:osakunta/haskell-futurice-prelude.git
+	url = https://github.com/osakunta/haskell-futurice-prelude.git

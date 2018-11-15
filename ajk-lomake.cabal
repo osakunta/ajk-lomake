@@ -78,8 +78,6 @@ library
       SatO.AJK.Lomake.Palaute
       SatO.AJK.Lomake.Sisainen
       Singleton.Bool
-  other-modules:
-      Paths_ajk_lomake
   default-language: Haskell2010
 
 executable ajk-lomake-server

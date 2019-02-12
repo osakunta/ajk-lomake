@@ -53,6 +53,8 @@ import SatO.AJK.Lomake.Huoltoilmoitus
 import SatO.AJK.Lomake.Palaute
 import SatO.AJK.Lomake.Sisainen
 
+import qualified SatO.AJK.Lomake.Uusinta as U
+
 -------------------------------------------------------------------------------
 -- API
 -------------------------------------------------------------------------------
@@ -74,6 +76,7 @@ type AJKLomakeAPI =
     FormAPI Asuntohaku :<|>
     FormAPI Sisainen :<|>
     FormAPI Huoltoilmoitus :<|>
+    FormAPI U.Uusinta :<|>
     FormAPI Palaute
 
 instance (LomakeForm a, LomakeName a) => ToHtml (Page a) where
@@ -221,7 +224,8 @@ server addr huoltoAddr =
     give (AsuntohakuAddress addr) $
     give (PalauteAddress addr) $
     give (HuoltoilmoitusAddress huoltoAddr) $
-    formServer :<|> formServer :<|> formServer :<|> formServer
+    give (U.UusintaAddress addr) $
+    formServer :<|> formServer :<|> formServer :<|> formServer :<|> formServer
 
 app
     :: NonEmpty Address -- ^ AJK Address
@@ -243,6 +247,7 @@ defaultMain = do
     let huoltoAddress = mkAddr huoltoAddr
     hPutStrLn stderr "Hello, ajk-lomake-api is alive"
     hPutStrLn stderr "Starting web server"
+    hPutStrLn stderr $ "http://localhost:" ++ show port
     let settings = Warp.defaultSettings
           & Warp.setPort port
           & Warp.setOnExceptionResponse onExceptionResponse

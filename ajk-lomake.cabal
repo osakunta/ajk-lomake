@@ -1,37 +1,34 @@
-cabal-version:  2.2
-name:           ajk-lomake
-version:        0
-
-synopsis:       AJK form
-description:    Jee jee jee
-category:       Web
-
-homepage:       https://github.com/osakunta/ajk-lomake#readme
-bug-reports:    https://github.com/osakunta/ajk-lomake/issues
-author:         Oleg Grenrus <oleg.grenrus@iki.fi>
-maintainer:     Oleg Grenrus <oleg.grenrus@iki.fi>
-license:        BSD-3-Clause
-license-file:   LICENSE
-build-type:     Simple
-tested-with:    GHC==8.4.4
-
+cabal-version:      2.4
+name:               ajk-lomake
+version:            0
+synopsis:           AJK form
+description:        Jee jee jee
+category:           Web
+homepage:           https://github.com/osakunta/ajk-lomake#readme
+bug-reports:        https://github.com/osakunta/ajk-lomake/issues
+author:             Oleg Grenrus <oleg.grenrus@iki.fi>
+maintainer:         Oleg Grenrus <oleg.grenrus@iki.fi>
+license:            BSD-3-Clause
+license-file:       LICENSE
+build-type:         Simple
+tested-with:        GHC ==8.4.4
 extra-source-files:
-    README.md
-    foundation-6/css/foundation.min.css
-    style.css
+  README.md
+  foundation-6/css/foundation.min.css
+  style.css
 
 source-repository head
-  type: git
+  type:     git
   location: https://github.com/osakunta/ajk-lomake
 
 library
-  hs-source-dirs:
-      src
-  ghc-options: -Wall
+  default-language: Haskell2010
+  hs-source-dirs:   src
+  ghc-options:      -Wall
   build-depends:
-      base                  ^>=4.11.1.0
     , aeson
     , aeson-compat
+    , base                  ^>=4.11.1.0
     , base-compat
     , bifunctors
     , blaze-html
@@ -41,11 +38,11 @@ library
     , file-embed
     , futurice-prelude
     , generics-sop
+    , HPDF
     , http-api-data
     , http-client
     , http-client-tls
     , http-types
-    , HPDF
     , lens
     , lucid
     , markdown
@@ -66,26 +63,27 @@ library
     , vector
     , wai
     , warp
+
   exposed-modules:
-      Lomake
-      Lomake.PDF
-      Lomake.Pretty
-      SatO.AJK.Lomake
-      SatO.AJK.Lomake.Asuntohaku
-      SatO.AJK.Lomake.Classes
-      SatO.AJK.Lomake.Huoltoilmoitus
-      SatO.AJK.Lomake.LongText
-      SatO.AJK.Lomake.Palaute
-      SatO.AJK.Lomake.Sisainen
-      Singleton.Bool
-  default-language: Haskell2010
+    Lomake
+    Lomake.PDF
+    Lomake.Pretty
+    SatO.AJK.Lomake
+    SatO.AJK.Lomake.Asuntohaku
+    SatO.AJK.Lomake.Classes
+    SatO.AJK.Lomake.Common
+    SatO.AJK.Lomake.Huoltoilmoitus
+    SatO.AJK.Lomake.LongText
+    SatO.AJK.Lomake.Palaute
+    SatO.AJK.Lomake.Sisainen
+    SatO.AJK.Lomake.Uusinta
+    Singleton.Bool
 
 executable ajk-lomake-server
-  main-is: Main.hs
-  hs-source-dirs:
-      srv
-  ghc-options: -Wall -threaded
-  build-depends:
-      base
-    , ajk-lomake
   default-language: Haskell2010
+  main-is:          Main.hs
+  hs-source-dirs:   srv
+  ghc-options:      -Wall -threaded
+  build-depends:
+    , ajk-lomake
+    , base

@@ -246,7 +246,7 @@ instance (LomakeField a, KnownSymbol sym, KnownSymbol extra, SRequiredI req)
     lomakeFieldView' _ env name = div_ [class_ cls] $ do
         div_ [class_ "large-4 columns"] $ do
             label_ [class_ "text-right middle-text-left middle", Lucid.for_ $ T.pack name] $ do
-                toHtml desc'
+                toFancyHtml desc'
                 when (not $ T.null extra) $ do
                     br_ []
                     small_ $ toHtml extra
@@ -557,3 +557,14 @@ forMSep_ :: Applicative m => [a] -> m c -> (a -> m b) -> m ()
 forMSep_ [] _ _     = pure ()
 forMSep_ [x] _ f    = f x *> pure ()
 forMSep_ (x:xs) s f = f x *> s *> forMSep_ xs s f
+
+-------------------------------------------------------------------------------
+-- Fancy text
+-------------------------------------------------------------------------------
+
+toFancyHtml :: Monad m => Text -> HtmlT m ()
+toFancyHtml = go False . T.splitOn "*" where
+    go _ [] = pure ()
+    go _ [t] | T.null t = toHtml ("*" :: String)
+    go False (t:ts) = toHtml t      >> go True ts
+    go True  (t:ts) = i_ (toHtml t) >> go False ts

@@ -3,8 +3,6 @@ module SatO.AJK.Lomake.Common where
 
 import Lomake
 
-import SatO.AJK.Lomake.Classes
-
 import qualified Data.Text as T
 
 data Siv = Naimaton | Aviossa

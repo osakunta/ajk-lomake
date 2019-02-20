@@ -36,6 +36,7 @@ import Servant.HTML.Lucid
 import System.Environment        (lookupEnv)
 import System.IO                 (hPutStrLn, stderr, stdout)
 import Text.Read                 (readMaybe)
+import Servant.Multipart
 
 import qualified Data.ByteString.Lazy     as LBS
 import qualified Data.List.NonEmpty       as NE
@@ -68,7 +69,7 @@ newtype ConfirmPage a = ConfirmPage Bool -- Error
 
 type FormAPI a = LomakeShortName a :>
     ( Get '[HTML] (Page a)
-    :<|> ReqBody '[FormUrlEncoded] (LomakeResult a) :> Post '[HTML] (Page a)
+    :<|> MultipartForm Tmp (LomakeResult a) :> Post '[HTML] (Page a)
     :<|> "send" :> ReqBody '[FormUrlEncoded] (LomakeResult a) :> Post '[HTML] (ConfirmPage a)
     )
 
@@ -84,7 +85,7 @@ instance (LomakeForm a, LomakeName a) => ToHtml (Page a) where
     toHtml (Page (LomakeResult env v)) = page_ t $ do
         case v of
             Nothing -> do
-                form_ [action_ $ "/" <> lomakeShortName p <> "/" , method_ "POST"] $ do
+                form_ [action_ $ "/" <> lomakeShortName p <> "/" , enctype_ "multipart/form-data", method_ "POST"] $ do
                     maybe (pure ()) (div_ [class_ "row"] . div_ [class_ "large-12 columns secondary callout"] . span_ . toHtml) (lomakePreamble p)
                     lomakeView p env
                     div_ [class_ "row"] $ div_ [class_ "large-12 columns"] $ do

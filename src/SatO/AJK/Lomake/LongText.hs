@@ -7,16 +7,16 @@
 {-# LANGUAGE UndecidableInstances #-}
 module SatO.AJK.Lomake.LongText where
 
-import Prelude ()
-import Futurice.Prelude
-import Data.Char          (isDigit)
-import Data.Proxy         (Proxy (..))
-import Data.Text          (pack)
+import Data.Char            (isDigit)
+import Data.Proxy           (Proxy (..))
+import Data.Singletons.Bool
+import Data.Text            (pack)
 import Data.Type.Equality
-import GHC.TypeLits       (KnownSymbol, Symbol, symbolVal)
+import Futurice.Prelude
+import GHC.TypeLits         (KnownSymbol, Symbol, symbolVal)
 import Lomake
 import Lucid
-import Singleton.Bool
+import Prelude ()
 
 import qualified Data.Text as T
 

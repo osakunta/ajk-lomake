@@ -1,14 +1,14 @@
-{-# LANGUAGE DataKinds           #-}
-{-# LANGUAGE DefaultSignatures   #-}
-{-# LANGUAGE FlexibleContexts    #-}
-{-# LANGUAGE FlexibleInstances   #-}
-{-# LANGUAGE GADTs               #-}
-{-# LANGUAGE OverloadedStrings   #-}
-{-# LANGUAGE RankNTypes          #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TemplateHaskell     #-}
-{-# LANGUAGE TypeFamilies        #-}
-{-# LANGUAGE TypeOperators       #-}
+{-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE DefaultSignatures     #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE GADTs                 #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE RankNTypes            #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE TypeOperators         #-}
 {-# OPTIONS_GHC -Wno-redundant-constraints #-}
 module Lomake (
     -- * Definition type
@@ -58,22 +58,23 @@ module Lomake (
     module Lomake.Pretty,
     ) where
 
-import Prelude ()
+import Data.Map         (Map)
+import Data.Maybe       (fromMaybe)
+import Data.Semigroup   ((<>))
+import Data.String      (fromString)
+import Data.Text        (Text)
 import Futurice.Prelude hiding (Generic, from)
-import Data.Map       (Map)
-import Data.Maybe     (fromMaybe)
-import Data.Semigroup ((<>))
-import Data.String    (fromString)
-import Data.Text      (Text)
 import Generics.SOP
-import GHC.TypeLits   (KnownSymbol, Symbol, symbolVal)
-import Lucid hiding (for_)
+import GHC.TypeLits     (KnownSymbol, Symbol, symbolVal)
+import Lucid            hiding (for_)
+import Prelude ()
 
-import qualified Lucid
 import qualified Data.Foldable               as F
 import qualified Data.HashMap.Strict         as HM
 import qualified Data.Map                    as Map
 import qualified Data.Text                   as T
+import qualified Lucid
+import qualified Servant.Multipart           as MP
 import qualified Web.FormUrlEncoded
 import qualified Web.Internal.FormUrlEncoded as Form
 
@@ -488,6 +489,13 @@ instance LomakeForm a => Form.FromForm (LomakeResult a) where
     fromForm = Right . runLomakeValidate lomakeValidate . legacy . Form.unForm
       where
         legacy hm = [ (k, v) | (k, vs) <- HM.toList hm, v <- vs ]
+
+instance LomakeForm a => MP.FromMultipart MP.Tmp (LomakeResult a) where
+    fromMultipart (MP.MultipartData fs _) = Just $
+        runLomakeValidate lomakeValidate
+            [ (k, v)
+            | MP.Input k v <- fs
+            ]
 
 -------------------------------------------------------------------------------
 -- Text

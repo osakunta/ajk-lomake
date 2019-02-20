@@ -54,15 +54,20 @@ data Asumisoikeus = Asumisoikeus
     , asumisoikeusExtra     :: D "Lisää muut asumisoikeuteesi liittyvät asiat tähän" 'Optional LongText
     }
 
-data Harrastuneisuus = Harrastuneisuus
+newtype Harrastuneisuus = Harrastuneisuus
     { overallHarrastuneisuus :: D "Osallistuminen Osakunnan/Säätiön tms. toimintaan" 'Optional LongText
     }
 
+newtype Opintosuoritusote = Opintosuoritusote
+    { getOpintosuritusote :: F "Opintosuoritusote"
+    }
+
 data Uusinta = Uusinta
-    { uusintaPerson          :: D "Hakijan henkilötiedot" 'Required Person
-    , uusintaStudies         :: D "Opinnot"               'Required Studies
-    , uusintaAsumisoikeus    :: D "Asumisoikeus"          'Required Asumisoikeus
-    , uusintaHarrastuneisuus :: D "Harrastuneisuus"       'Required Harrastuneisuus
+    { uusintaPerson            :: D "Hakijan henkilötiedot" 'Required Person
+    , uusintaStudies           :: D "Opinnot"               'Required Studies
+    , uusintaAsumisoikeus      :: D "Asumisoikeus"          'Required Asumisoikeus
+    , uusintaHarrastuneisuus   :: D "Harrastuneisuus"       'Required Harrastuneisuus
+    , uusintaOpintosuoritusote :: D "Opintosuoritusote"     'Required Opintosuoritusote
     }
 
 -------------------------------------------------------------------------------
@@ -73,6 +78,7 @@ deriveGeneric ''Person
 deriveGeneric ''Studies
 deriveGeneric ''Asumisoikeus
 deriveGeneric ''Harrastuneisuus
+deriveGeneric ''Opintosuoritusote
 
 deriveGeneric ''Uusinta
 
@@ -84,6 +90,7 @@ instance LomakeSection Person
 instance LomakeSection Studies
 instance LomakeSection Asumisoikeus
 instance LomakeSection Harrastuneisuus
+instance LomakeSection Opintosuoritusote
 
 instance LomakeForm Uusinta
 

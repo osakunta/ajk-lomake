@@ -17,6 +17,7 @@ import Prelude ()
 import Futurice.Prelude
 import Control.Exception         (SomeException)
 import Control.Lens              (ifor_)
+import Data.Monoid (Endo (..))
 import Control.Monad             (forM_, when)
 import Control.Monad.IO.Class    (MonadIO (..))
 import Data.FileEmbed            (embedStringFile)
@@ -69,7 +70,7 @@ newtype ConfirmPage a = ConfirmPage Bool -- Error
 
 type FormAPI a = LomakeShortName a :>
     ( Get '[HTML] (Page a)
-    :<|> MultipartForm Tmp (LomakeResult a) :> Post '[HTML] (Page a)
+    :<|> MultipartForm Mem (LomakeResult a) :> Post '[HTML] (Page a)
     :<|> "send" :> ReqBody '[FormUrlEncoded] (LomakeResult a) :> Post '[HTML] (ConfirmPage a)
     )
 
@@ -139,6 +140,7 @@ secondPost (LomakeResult _ Nothing) = pure $ ConfirmPage False
 secondPost (LomakeResult _ (Just ajk)) = do
     liftIO $ forM_ toAddresses $ \toAddress -> do
         let mail = addPdfAttachments
+                $ addAttachements
                 $ simpleMail' toAddress fromAddress subject body :: Mail
             mail' = (\a -> mail { mailTo = [a] }) <$> lomakeSend ajk
         hPutStrLn stderr $ "Sending application from " <> T.unpack name <> " to " <> show toAddress
@@ -159,6 +161,9 @@ secondPost (LomakeResult _ (Just ajk)) = do
         | lomakePdf proxyA =
             addAttachmentBS "application/pdf" pdfName pdfBS
         | otherwise = id
+
+    addAttachements = appEndo $ foldMap f $ attachements $ lomakePretty ajk where
+        f (n, bs) = Endo $ addAttachmentBS "application/pdf" (n <> ".pdf") (LBS.fromStrict bs)
 
     body :: TL.Text
     body = TL.fromStrict $ render $ lomakePretty ajk

@@ -10,9 +10,18 @@
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
 {-# OPTIONS_GHC -Wno-redundant-constraints #-}
+-- |
+--
+-- Note: Lomake is able to handle file uploads, but because we have
+-- potentially two-step process, we embed the data as base16 encoded in the 
+-- middle output. This is ugly, but this way we don't need to have
+-- any state on the backend.
+--
 module Lomake (
     -- * Definition type
     D, D'(..), unD, d, dToMaybe,
+    -- * Files
+    F (..),
     -- * Form classes
     LomakeForm(..),
     LomakeSection(..),
@@ -58,21 +67,27 @@ module Lomake (
     module Lomake.Pretty,
     ) where
 
-import Data.Map         (Map)
-import Data.Maybe       (fromMaybe)
-import Data.Semigroup   ((<>))
-import Data.String      (fromString)
-import Data.Text        (Text)
-import Futurice.Prelude hiding (Generic, from)
+import Data.Either.Validation (Validation (..))
+import Data.Foldable          (asum)
+import Data.Map               (Map)
+import Data.Maybe             (fromMaybe)
+import Data.Semigroup         ((<>))
+import Data.String            (fromString)
+import Data.Text              (Text)
+import Futurice.Prelude       hiding (Generic, from)
 import Generics.SOP
-import GHC.TypeLits     (KnownSymbol, Symbol, symbolVal)
-import Lucid            hiding (for_)
+import GHC.TypeLits           (KnownSymbol, Symbol, symbolVal)
+import Lucid                  hiding (for_)
 import Prelude ()
 
+import qualified Data.ByteString             as BS
+import qualified Data.ByteString.Base16      as Base16
+import qualified Data.ByteString.Lazy        as LBS
 import qualified Data.Foldable               as F
 import qualified Data.HashMap.Strict         as HM
 import qualified Data.Map                    as Map
 import qualified Data.Text                   as T
+import qualified Data.Text.Encoding          as TE
 import qualified Lucid
 import qualified Servant.Multipart           as MP
 import qualified Web.FormUrlEncoded
@@ -88,7 +103,7 @@ import Lomake.Pretty
 type D sym req a = D' sym req a ""
 
 -- | Field description with extra info.
-data D' (sym :: Symbol) (req :: Required) a (extra :: Symbol) = D (O req a)
+newtype D' (sym :: Symbol) (req :: Required) a (extra :: Symbol) = D (O req a)
 
 d :: forall sym req a. SRequiredI req => a -> D sym req a
 d = case srequired (Proxy :: Proxy req) of
@@ -103,6 +118,12 @@ dToMaybe :: forall sym req a. SRequiredI req => D sym req a -> Maybe a
 dToMaybe = case srequired (Proxy :: Proxy req) of
     SRequired  -> Just . unD
     SOptional -> unD
+
+-------------------------------------------------------------------------------
+-- F
+-------------------------------------------------------------------------------
+
+newtype F (sym :: Symbol) = F BS.ByteString
 
 -------------------------------------------------------------------------------
 -- Required
@@ -187,11 +208,12 @@ fieldInfos' (Record _ fs) = fs
 data LomakeEnv = LomakeEnv
     { _lomakeEnvErrors :: Map Text [Text]
     , _lomakeEnvInputs :: [(Text, Text)]
+    , _lomakeEnvFiles  :: [MP.FileData MP.Mem]
     }
 
 -- | Empty lomake environment, useful for @GET@ requests.
 emptyLomakeEnv :: LomakeEnv
-emptyLomakeEnv = LomakeEnv mempty []
+emptyLomakeEnv = LomakeEnv mempty [] []
 
 class LomakeField a where
     lomakeFieldView
@@ -213,17 +235,20 @@ class LomakeField a where
         -> Field
 
 hasErrors :: LomakeEnv -> Text -> Maybe [Text]
-hasErrors (LomakeEnv errs _) name = Map.lookup name errs
+hasErrors (LomakeEnv errs _ _) name = Map.lookup name errs
 
 -- | The value posted, defaults to @""@
 submittedTextValue :: LomakeEnv -> Text -> Text
-submittedTextValue (LomakeEnv _ params) name = fromMaybe "" $
+submittedTextValue (LomakeEnv _ params _) name = fromMaybe "" $
     lookup name params
 
 -- | This can be used to resubmit the form.
 hiddenForm :: Monad m => LomakeEnv -> HtmlT m ()
-hiddenForm (LomakeEnv _ inputs) = for_ inputs $ \(k, v) ->
-    input_ [type_ "hidden", name_ k, value_ v]
+hiddenForm (LomakeEnv _ inputs files) = do
+    for_ inputs $ \(k, v) ->
+        input_ [type_ "hidden", name_ k, value_ v]
+    for_ files $ \(MP.FileData k _ _ lbs) ->
+        input_ [type_ "hidden", name_ k, value_ $ TE.decodeUtf8 $ Base16.encode $ LBS.toStrict lbs ]
 
 class LomakeField' a where
     lomakeFieldView'
@@ -326,29 +351,29 @@ sopPretty x = case from x of
 -------------------------------------------------------------------------------
 
 -- | Lomake forms are 'Applicative'.
-newtype LomakeValidate a = LomakeValidate ([(Text, Text)] -> (Map Text [Text], Maybe a))
+newtype LomakeValidate a = LomakeValidate ([(Text, Text)] -> [MP.FileData MP.Mem] -> (Map Text [Text], Maybe a))
 
 data LomakeResult a = LomakeResult LomakeEnv (Maybe a)
 
-runLomakeValidate :: LomakeValidate a -> [(Text, Text)] -> LomakeResult a
-runLomakeValidate (LomakeValidate f) params =
-    case f params of
-        (errs, x) -> LomakeResult (LomakeEnv errs params) x
+runLomakeValidate :: LomakeValidate a -> [(Text, Text)] -> [MP.FileData MP.Mem] -> LomakeResult a
+runLomakeValidate (LomakeValidate f) params files =
+    case f params files of
+        (errs, x) -> LomakeResult (LomakeEnv errs params files) x
 
 instance Functor LomakeValidate where
-    fmap f (LomakeValidate l)  = LomakeValidate $ (fmap . fmap . fmap) f l
+    fmap f (LomakeValidate l)  = LomakeValidate $ \xs ys -> fmap (fmap f) (l xs ys)
 
 instance Applicative LomakeValidate where
-    pure x = LomakeValidate $ \_ -> (Map.empty, Just x)
-    LomakeValidate f <*> LomakeValidate x = LomakeValidate $ \p ->
-        case (f p, x p) of
+    pure x = LomakeValidate $ \_ _ -> (Map.empty, Just x)
+    LomakeValidate f <*> LomakeValidate x = LomakeValidate $ \p q ->
+        case (f p q, x p q) of
             ((errF, valF), (errX, valX)) ->
                 (Map.unionWith mappend errF errX, valF <*> valX)
 
 requiredText
     :: Text
     -> LomakeValidate Text
-requiredText name = LomakeValidate $ \p ->
+requiredText name = LomakeValidate $ \p _ ->
     case lookup name p of
         Nothing ->
             (Map.singleton name ["Pakollinen kenttä"], Nothing)
@@ -360,13 +385,13 @@ requiredText name = LomakeValidate $ \p ->
 optionalText
     :: Text
     -> LomakeValidate (Maybe Text)
-optionalText name = LomakeValidate $ \p ->
+optionalText name = LomakeValidate $ \p _ ->
     (Map.empty, Just $ lookup name p)
 
 -- | Analogue to 'mapMaybe', 'Left' value is a warning issued.
 validate :: (a -> Either (Text, Text) b) -> LomakeValidate a -> LomakeValidate b
-validate f (LomakeValidate l) = LomakeValidate $ \p ->
-    case l p of
+validate f (LomakeValidate l) = LomakeValidate $ \p q ->
+    case l p q of
         (errs, Nothing) -> (errs, Nothing)
         (errs, Just x)  -> case f x of
             Right y     -> (errs, Just y)
@@ -392,7 +417,7 @@ lomakeText p = case srequired p of
 
 
 -------------------------------------------------------------------------------
--- Section
+-- Section D
 -------------------------------------------------------------------------------
 
 class LomakeSection a where
@@ -463,6 +488,72 @@ sopFormPretty x = case from x of
     _          -> error "sopFormPretty: impossible happened"
 
 -------------------------------------------------------------------------------
+-- LomakeSection F
+-------------------------------------------------------------------------------
+
+instance KnownSymbol sym => LomakeField' (F sym) where
+    lomakeFieldView' _ env name = div_ [class_ cls] $ do
+        div_ [class_ "large-4 columns"] $
+            label_ [class_ "text-right middle-text-left middle", Lucid.for_ $ T.pack name] $ do
+                toFancyHtml desc'
+                {-
+                when (not $ T.null extra) $ do
+                    br_ []
+                    small_ $ toHtml extra
+                -}
+                F.for_ errs $ \e -> do
+                    br_ []
+                    span_ $ toHtml e
+        div_ [class_ "large-8 columns"] $
+            input_ [type_ "file", name_ $ T.pack name ]
+      where
+        proxySym = Proxy :: Proxy sym
+        desc = T.pack (symbolVal proxySym)
+        desc' = if True -- always required
+                    then desc <> "*"
+                    else desc
+        errs = fromMaybe [] (hasErrors env (T.pack name))
+        cls = if null errs then "row" else "row error"
+
+    lomakeFieldValidate' name = LomakeValidate $ \ps qs ->
+        case asum $ fromFiles qs ++ fromFields ps of
+            Success f    -> (Map.empty, Just f)
+            Failure errs -> (Map.singleton (T.pack name) errs', Nothing)
+              where
+                errs' | null errs = ["Pakollinen kenttä"]
+                      | otherwise = errs
+      where
+        fromFiles qs =
+            [ if ctype == "application/pdf"
+              then checkSize bs
+              else Failure ["Vain PDF tiedostot"]
+            | MP.FileData name' _ ctype lbs <- qs
+            , T.pack name == name'
+            , let bs = LBS.toStrict lbs
+            ]
+
+        fromFields ps =
+            [ if BS.null (snd decoded)
+              then checkSize $ fst decoded
+              else Failure ["Jotain meni vikaan, yritä latamaan uudelleen"]
+            | (name', da) <- ps
+            , T.pack name == name'
+            , let decoded = Base16.decode $ TE.encodeUtf8 da
+            , BS.null (snd decoded)
+            ]
+
+        checkSize bs =
+            if BS.length bs <= 500000
+            then Success $ F bs
+            else Failure ["Tiedosto on liian iso"]
+
+
+    lomakeFieldPretty' (F bs) = (desc, FileField bs)
+      where
+        proxySym = Proxy :: Proxy sym
+        desc = T.pack $ symbolVal proxySym
+
+-------------------------------------------------------------------------------
 -- Form
 -------------------------------------------------------------------------------
 
@@ -486,16 +577,17 @@ class LomakeForm a where
     lomakePretty = sopFormPretty
 
 instance LomakeForm a => Form.FromForm (LomakeResult a) where
-    fromForm = Right . runLomakeValidate lomakeValidate . legacy . Form.unForm
+    fromForm f = Right $ runLomakeValidate lomakeValidate (legacy (Form.unForm f)) []
       where
         legacy hm = [ (k, v) | (k, vs) <- HM.toList hm, v <- vs ]
 
-instance LomakeForm a => MP.FromMultipart MP.Tmp (LomakeResult a) where
-    fromMultipart (MP.MultipartData fs _) = Just $
+instance LomakeForm a => MP.FromMultipart MP.Mem (LomakeResult a) where
+    fromMultipart (MP.MultipartData fs fd) = Just $
         runLomakeValidate lomakeValidate
             [ (k, v)
             | MP.Input k v <- fs
             ]
+            fd
 
 -------------------------------------------------------------------------------
 -- Text

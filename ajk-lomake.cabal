@@ -30,11 +30,13 @@ library
     , aeson-compat
     , base                  ^>=4.11.1.0
     , base-compat
+    , base16-bytestring
     , bifunctors
     , blaze-html
     , bytestring
     , containers
-    , either
+    , cryptohash-sha1
+    , either                ^>=5
     , file-embed
     , futurice-prelude
     , generics-sop
@@ -51,11 +53,11 @@ library
     , pretty
     , reflection
     , semigroups
-    , singleton-bool
     , servant
     , servant-lucid
     , servant-multipart
     , servant-server
+    , singleton-bool
     , stm
     , tagged
     , text
@@ -68,6 +70,7 @@ library
 
   exposed-modules:
     Lomake
+    Lomake.Digest
     Lomake.PDF
     Lomake.Pretty
     SatO.AJK.Lomake

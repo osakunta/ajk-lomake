@@ -13,38 +13,40 @@ module SatO.AJK.Lomake (
     Page(..),
     ) where
 
-import Prelude ()
-import Futurice.Prelude
+import System.Exit (ExitCode (..))
 import Control.Exception         (SomeException)
-import Control.Lens              (ifor_)
-import Data.Monoid (Endo (..))
+import Control.Lens              (ifor_, forOf)
 import Control.Monad             (forM_, when)
 import Control.Monad.IO.Class    (MonadIO (..))
 import Data.FileEmbed            (embedStringFile)
 import Data.Function             ((&))
 import Data.List.NonEmpty        (NonEmpty)
 import Data.Maybe                (fromMaybe)
+import Data.Monoid               (Endo (..))
 import Data.Reflection           (give)
 import Data.Semigroup            ((<>))
 import Data.String               (fromString)
 import Data.Text                 (Text)
+import Futurice.Prelude
 import Lucid                     hiding (for_)
 import Network.HTTP.Types.Status (status500)
 import Network.Mail.Mime
 import Network.Wai
+import Prelude ()
 import Servant
 import Servant.HTML.Lucid
+import Servant.Multipart
 import System.Environment        (lookupEnv)
 import System.IO                 (hPutStrLn, stderr, stdout)
 import Text.Read                 (readMaybe)
-import Servant.Multipart
 
-import qualified Data.ByteString.Lazy     as LBS
-import qualified Data.List.NonEmpty       as NE
-import qualified Data.Text                as T
-import qualified Data.Text.Lazy           as TL
-import qualified Graphics.PDF             as PDF
-import qualified Network.Wai.Handler.Warp as Warp
+import qualified Data.ByteString.Lazy      as LBS
+import qualified Data.List.NonEmpty        as NE
+import qualified Data.Text                 as T
+import qualified Data.Text.Lazy            as TL
+import qualified Graphics.PDF              as PDF
+import qualified Network.Wai.Handler.Warp  as Warp
+import qualified System.Process.ByteString as ProcBS
 
 import Lomake
 import Lomake.PDF
@@ -122,8 +124,23 @@ instance LomakeName a => ToHtml (ConfirmPage a) where
 ajkLomakeApi :: Proxy AJKLomakeAPI
 ajkLomakeApi = Proxy
 
-firstPost :: MonadIO m => LomakeResult a -> m (Page a)
-firstPost = return . Page
+firstPost :: (MonadIO m, LomakeForm a) => LomakeResult a -> m (Page a)
+firstPost (LomakeResult env ma) = do
+    mb <- forOf (_Just . lomakePdfBS) ma $ \bs -> liftIO $ do
+        (ec, bs', _) <- ProcBS.readProcessWithExitCode "gs"
+            [ "-sDEVICE=pdfwrite"
+            , "-dCompatibilityLevel=1.4"
+            , "-dPDFSETTINGS=/screen"
+            , "-dNOPAUSE"
+            , "-dQUIET"
+            , "-dBATCH"
+            , "-sOutputFile=-"
+            , "-"
+            ]
+            bs
+        unless (ec == ExitSuccess) $ fail "PDF conversion failed"
+        return bs'
+    return $ Page $ LomakeResult env mb
 
 sendmail' :: Mail -> IO ()
 sendmail' mail = do

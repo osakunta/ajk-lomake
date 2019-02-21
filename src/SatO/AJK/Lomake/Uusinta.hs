@@ -1,17 +1,21 @@
 {-# LANGUAGE DataKinds            #-}
+{-# LANGUAGE DeriveGeneric        #-}
 {-# LANGUAGE FlexibleContexts     #-}
+{-# LANGUAGE OverloadedLabels     #-}
 {-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE TemplateHaskell      #-}
 {-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE UndecidableInstances #-}
 module SatO.AJK.Lomake.Uusinta where
 
-import Data.List.NonEmpty (NonEmpty)
-import Data.Reflection    (Given (..))
-import Data.Semigroup     ((<>))
-import Data.Text          (Text)
-import Generics.SOP.TH    (deriveGeneric)
-import Network.Mail.Mime  (Address (..))
+import Data.Generics.Labels ()
+import Data.List.NonEmpty   (NonEmpty)
+import Data.Reflection      (Given (..))
+import Data.Semigroup       ((<>))
+import Data.Text            (Text)
+import Generics.SOP.TH      (deriveGeneric)
+import GHC.Generics         (Generic)
+import Network.Mail.Mime    (Address (..))
 
 import Lomake
 
@@ -61,6 +65,7 @@ newtype Harrastuneisuus = Harrastuneisuus
 newtype Opintosuoritusote = Opintosuoritusote
     { getOpintosuritusote :: F "Opintosuoritusote"
     }
+  deriving (Generic)
 
 data Uusinta = Uusinta
     { uusintaPerson            :: D "Hakijan henkilötiedot" 'Required Person
@@ -69,6 +74,7 @@ data Uusinta = Uusinta
     , uusintaHarrastuneisuus   :: D "Harrastuneisuus"       'Required Harrastuneisuus
     , uusintaOpintosuoritusote :: D "Opintosuoritusote"     'Required Opintosuoritusote
     }
+  deriving (Generic)
 
 -------------------------------------------------------------------------------
 -- Generics
@@ -92,7 +98,12 @@ instance LomakeSection Asumisoikeus
 instance LomakeSection Harrastuneisuus
 instance LomakeSection Opintosuoritusote
 
-instance LomakeForm Uusinta
+instance LomakeForm Uusinta where
+    lomakeView     = sopFormView
+    lomakeValidate = sopFormValidate
+    lomakePretty   = sopFormPretty
+
+    lomakePdfBS = #uusintaOpintosuoritusote . isoD . #getOpintosuritusote . isoF
 
 -------------------------------------------------------------------------------
 -- Classes

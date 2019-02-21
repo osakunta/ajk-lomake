@@ -11,7 +11,7 @@ maintainer:         Oleg Grenrus <oleg.grenrus@iki.fi>
 license:            BSD-3-Clause
 license-file:       LICENSE
 build-type:         Simple
-tested-with:        ghc ==8.4.4
+tested-with:        GHC ==8.4.4
 extra-source-files:
   README.md
   foundation-6/css/foundation.min.css
@@ -40,6 +40,7 @@ library
     , file-embed
     , futurice-prelude
     , generics-sop
+    , generic-lens
     , HPDF
     , http-api-data
     , http-client
@@ -51,6 +52,7 @@ library
     , mime-mail
     , mtl
     , pretty
+    , process-extras
     , reflection
     , semigroups
     , servant

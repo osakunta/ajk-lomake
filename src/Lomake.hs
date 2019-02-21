@@ -13,17 +13,18 @@
 -- |
 --
 -- Note: Lomake is able to handle file uploads, but because we have
--- potentially two-step process, we embed the data as base16 encoded in the 
+-- potentially two-step process, we embed the data as base16 encoded in the
 -- middle output. This is ugly, but this way we don't need to have
 -- any state on the backend.
 --
 module Lomake (
     -- * Definition type
-    D, D'(..), unD, d, dToMaybe,
+    D, isoD, D'(..), unD, d, dToMaybe,
     -- * Files
-    F (..),
+    F (..), isoF,
     -- * Form classes
     LomakeForm(..),
+    sopFormView, sopFormValidate, sopFormPretty,
     LomakeSection(..),
     LomakeField(..),
     -- * Lomake environment
@@ -67,6 +68,7 @@ module Lomake (
     module Lomake.Pretty,
     ) where
 
+import Control.Lens           (coerced)
 import Data.Either.Validation (Validation (..))
 import Data.Foldable          (asum)
 import Data.Map               (Map)
@@ -105,6 +107,9 @@ type D sym req a = D' sym req a ""
 -- | Field description with extra info.
 newtype D' (sym :: Symbol) (req :: Required) a (extra :: Symbol) = D (O req a)
 
+isoD :: Iso' (D' sym 'Required a extra) a
+isoD = coerced
+
 d :: forall sym req a. SRequiredI req => a -> D sym req a
 d = case srequired (Proxy :: Proxy req) of
     SRequired -> D . id
@@ -124,6 +129,9 @@ dToMaybe = case srequired (Proxy :: Proxy req) of
 -------------------------------------------------------------------------------
 
 newtype F (sym :: Symbol) = F BS.ByteString
+
+isoF :: Iso' (F sym) BS.ByteString
+isoF = coerced
 
 -------------------------------------------------------------------------------
 -- Required
@@ -575,6 +583,9 @@ class LomakeForm a where
         :: forall xs. (Generic a, Code a ~ '[xs],  All LomakeSection' xs)
         => a -> [Section]
     lomakePretty = sopFormPretty
+
+    lomakePdfBS :: Applicative f => (BS.ByteString -> f BS.ByteString) -> a -> f a
+    lomakePdfBS _ = pure
 
 instance LomakeForm a => Form.FromForm (LomakeResult a) where
     fromForm f = Right $ runLomakeValidate lomakeValidate (legacy (Form.unForm f)) []

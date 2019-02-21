@@ -101,7 +101,7 @@ instance LomakeForm Uusinta
 instance LomakeName Uusinta where
     type LomakeShortName Uusinta = "uusiminen"
 
-    lomakeTitle _      = "Asumisoikeuden uusiminen Satalinnan säätiön asuntoihin"
+    lomakeTitle _      = "Asumisoikeuden uusiminen Satalinnan Säätiön asuntoihin"
     lomakeEmailTitle _ = "Asumisoikeuden uusiminen"
     lomakePreamble _   = Nothing
     lomakePdf _        = True

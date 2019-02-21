@@ -208,7 +208,7 @@ page_ t b = doctypehtml_ $ do
         style_ [type_ "text/css"] ($(embedStringFile "style.css") :: String)
     body_ $ do
         div_ [class_ "row"] $ do
-            div_ [class_ "large-1 medium-2 columns"] $ img_ [ src_ "http://asuntola.satakuntatalo.fi/images/talopiirros.jpg", style_ "width: 100px; margin: 5px;" ]
+            div_ [class_ "large-1 medium-2 columns"] $ img_ [ src_ "https://asuntola.satakuntatalo.fi/images/talopiirros.jpg", style_ "width: 100px; margin: 5px;" ]
             div_ [class_ "large-11 medium-10 columns"] $ h1_ [ style_ "margin: 10px 0" ] $ toHtml t
         b
 

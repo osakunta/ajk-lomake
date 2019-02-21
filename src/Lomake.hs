@@ -543,7 +543,7 @@ instance KnownSymbol sym => LomakeField' (F sym) where
             ]
 
         checkSize bs =
-            if BS.length bs <= 500000
+            if BS.length bs <= 1500000
             then Success $ F bs
             else Failure ["Tiedosto on liian iso"]
 

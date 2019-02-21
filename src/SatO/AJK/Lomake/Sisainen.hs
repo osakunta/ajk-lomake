@@ -33,7 +33,7 @@ data SisAsunto = SisAsunto
     -- , sisOther    :: D' "Olen kiinnostunut myös muista vapautuvista asunnoista"    'Required Bool      "Asunnot, jotka vapautuvat sisäisen muuttoliikkeen takia"
     -- , sisSize     :: D "Jos kyllä, niin mikä on muiden asuntojen minimikoko (m2) ja muut vaatimukset"
     --                                                                               'Optional Text
-    , sisHistory  :: D "Asumishistoria Satalinnan säätiön asuntolassa"             'Required LongText
+    , sisHistory  :: D "Asumishistoria Satalinnan Säätiön asuntolassa"             'Required LongText
     , sisActivity :: D "Toiminta osakunnalla ja/tai säätiössä"                     'Required LongText
     , sisFree     :: D "Muut perustelut"                                           'Optional LongText
     }

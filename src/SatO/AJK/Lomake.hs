@@ -126,7 +126,7 @@ ajkLomakeApi = Proxy
 
 firstPost :: (MonadIO m, LomakeForm a) => LomakeResult a -> m (Page a)
 firstPost (LomakeResult env ma) = do
-    mb <- forOf (_Just . lomakePdfBS) ma $ \bs -> liftIO $ do
+    env' <- forOf lomakePdfBS env $ \bs -> liftIO $ do
         (ec, bs', _) <- ProcBS.readProcessWithExitCode "gs"
             [ "-sDEVICE=pdfwrite"
             , "-dCompatibilityLevel=1.4"
@@ -140,7 +140,7 @@ firstPost (LomakeResult env ma) = do
             bs
         unless (ec == ExitSuccess) $ fail "PDF conversion failed"
         return bs'
-    return $ Page $ LomakeResult env mb
+    return $ Page $ LomakeResult env' ma
 
 sendmail' :: Mail -> IO ()
 sendmail' mail = do

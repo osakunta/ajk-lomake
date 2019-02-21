@@ -1,14 +1,12 @@
 {-# LANGUAGE DataKinds            #-}
 {-# LANGUAGE DeriveGeneric        #-}
 {-# LANGUAGE FlexibleContexts     #-}
-{-# LANGUAGE OverloadedLabels     #-}
 {-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE TemplateHaskell      #-}
 {-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE UndecidableInstances #-}
 module SatO.AJK.Lomake.Uusinta where
 
-import Data.Generics.Labels ()
 import Data.List.NonEmpty   (NonEmpty)
 import Data.Reflection      (Given (..))
 import Data.Semigroup       ((<>))
@@ -102,8 +100,6 @@ instance LomakeForm Uusinta where
     lomakeView     = sopFormView
     lomakeValidate = sopFormValidate
     lomakePretty   = sopFormPretty
-
-    lomakePdfBS = #uusintaOpintosuoritusote . isoD . #getOpintosuritusote . isoF
 
 -------------------------------------------------------------------------------
 -- Classes

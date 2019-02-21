@@ -30,6 +30,7 @@ module Lomake (
     -- * Lomake environment
     LomakeEnv,
     emptyLomakeEnv,
+    lomakePdfBS,
     hiddenForm,
     submittedTextValue,
     -- * Lomake validation
@@ -222,6 +223,10 @@ data LomakeEnv = LomakeEnv
 -- | Empty lomake environment, useful for @GET@ requests.
 emptyLomakeEnv :: LomakeEnv
 emptyLomakeEnv = LomakeEnv mempty [] []
+
+lomakePdfBS :: Traversal' LomakeEnv BS.ByteString
+lomakePdfBS f (LomakeEnv a b xs) = LomakeEnv a b <$> traverse g xs where
+    g (MP.FileData u v w bs) = MP.FileData u v w . LBS.fromStrict <$> f (LBS.toStrict bs)
 
 class LomakeField a where
     lomakeFieldView
@@ -583,9 +588,6 @@ class LomakeForm a where
         :: forall xs. (Generic a, Code a ~ '[xs],  All LomakeSection' xs)
         => a -> [Section]
     lomakePretty = sopFormPretty
-
-    lomakePdfBS :: Applicative f => (BS.ByteString -> f BS.ByteString) -> a -> f a
-    lomakePdfBS _ = pure
 
 instance LomakeForm a => Form.FromForm (LomakeResult a) where
     fromForm f = Right $ runLomakeValidate lomakeValidate (legacy (Form.unForm f)) []

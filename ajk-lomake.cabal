@@ -40,7 +40,6 @@ library
     , file-embed
     , futurice-prelude
     , generics-sop
-    , generic-lens
     , HPDF
     , http-api-data
     , http-client

@@ -16,6 +16,9 @@ docker-push:
 docker-login:
 	gcloud auth print-access-token | sudo docker login -u oauth2accesstoken --password-stdin https://gcr.io
 
+deploy:
+	gcloud beta run deploy ajk-lomake --image gcr.io/saation-palvelut/ajk-lomake --region us-central1
+
 ghcid :
 	ghcid -c 'cabal new-repl'
 

@@ -13,6 +13,9 @@ docker-run:
 docker-push:
 	sudo docker push ${NAME}
 
+docker-login:
+	gcloud auth print-access-token | sudo docker login -u oauth2accesstoken --password-stdin https://gcr.io
+
 ghcid :
 	ghcid -c 'cabal new-repl'
 

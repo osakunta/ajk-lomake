@@ -8,7 +8,7 @@ docker-build:
 	sudo docker tag ${IMAGE} ${LATEST}
  
 docker-run:
-	sudo docker run -it --publish 8080:8080 ${IMAGE}
+	sudo docker run -it --publish 8080:8080 ${LATEST}
 
 docker-push:
 	sudo docker push ${NAME}

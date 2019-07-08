@@ -19,6 +19,8 @@ docker-login:
 deploy:
 	gcloud beta run deploy ajk-lomake --image gcr.io/saation-palvelut/ajk-lomake --region us-central1
 
+release: docker-build docker-login docker-push deploy
+
 ghcid :
 	ghcid -c 'cabal new-repl'
 

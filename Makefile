@@ -1,4 +1,4 @@
-NAME   := osakunta/ajk-lomake
+NAME   := gcr.io/saation-palvelut/ajk-lomake
 TAG    := $$(git log -1 --pretty=%h)
 IMAGE  := ${NAME}:${TAG}
 LATEST := ${NAME}:latest

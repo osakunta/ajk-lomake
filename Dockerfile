@@ -107,6 +107,7 @@ LABEL author="Oleg Grenrus <oleg.grenrus@iki.fi>"
 RUN apt-get -yq update && apt-get -yq --no-install-suggests --no-install-recommends install \
     ca-certificates \
     curl \
+    locales \
     libgmp10 \
     liblapack3 \
     liblzma5 \
@@ -117,6 +118,11 @@ RUN apt-get -yq update && apt-get -yq --no-install-suggests --no-install-recomme
     zlib1g \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
+
+RUN locale-gen en_US.UTF-8
+ENV LANG=en_US.UTF-8
+ENV LANGUAGE=en_US:en
+ENV LC_ALL=en_US.UTF-8
 
 WORKDIR /app
 

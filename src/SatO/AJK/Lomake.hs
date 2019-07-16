@@ -77,6 +77,7 @@ type FormAPI a = LomakeShortName a :>
     )
 
 type AJKLomakeAPI =
+    Get '[JSON] Text :<|>
     FormAPI Asuntohaku :<|>
     FormAPI Sisainen :<|>
     FormAPI Huoltoilmoitus :<|>
@@ -248,7 +249,12 @@ server addr huoltoAddr =
     give (PalauteAddress addr) $
     give (HuoltoilmoitusAddress huoltoAddr) $
     give (U.UusintaAddress addr) $
-    formServer :<|> formServer :<|> formServer :<|> formServer :<|> formServer
+    return "ping pong"
+    :<|> formServer
+    :<|> formServer
+    :<|> formServer
+    :<|> formServer
+    :<|> formServer
 
 app
     :: NonEmpty Address -- ^ AJK Address

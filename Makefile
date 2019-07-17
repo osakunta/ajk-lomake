@@ -9,21 +9,16 @@ docker-build:
 	sudo docker tag ${IMAGE} ${LATEST}
  
 docker-run:
-	sudo docker rm ${EXEC} && sudo docker run -it --name ${EXEC} --publish 8080:8080 ${LATEST}
+	sudo docker run -it --name ${EXEC} --publish 8080:8080 ${LATEST}
+
+docker-rm:
+	sudo docker rm ${EXEC}
 
 docker-push:
 	sudo docker push ${NAME}
 
-docker-login:
-	gcloud auth print-access-token | sudo docker login -u oauth2accesstoken --password-stdin https://gcr.io
-
 docker-bash:
 	sudo docker exec -it ${EXEC} /bin/bash
-
-deploy:
-	gcloud beta run deploy ajk-lomake --image gcr.io/saation-palvelut/ajk-lomake --region us-central1
-
-release: docker-build docker-login docker-push deploy
 
 ghcid :
 	ghcid -c 'cabal new-repl'

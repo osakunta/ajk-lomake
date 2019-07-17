@@ -114,7 +114,6 @@ RUN apt-get -yq update && apt-get -yq --no-install-suggests --no-install-recomme
     libpq5 \
     libyaml-0-2 \
     msmtp \
-    mutt \
     netbase \
     openssh-client \
     zlib1g \
@@ -130,12 +129,6 @@ ENV LC_ALL=en_US.UTF-8
 RUN echo 'host smtp-relay.gmail.com\n\
 port 587\n\
 from noreply@satakuntatalo.fi' > /etc/msmtprc
-
-# Config mutt to use msmtp (used to send emails with attachments)
-RUN echo 'set sendmail="/usr/bin/msmtp"\n\
-set use_from=yes\n\
-set from=noreply@satakuntatalo.fi\n\
-set envelope_from=yes' > /root/.muttrc
 
 # Create a symbolic link from msmtp to sendmail so there is no need for code changes
 RUN ln -s /usr/bin/msmtp /usr/sbin/sendmail

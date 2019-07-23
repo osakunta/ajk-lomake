@@ -142,7 +142,7 @@ instance LomakeForm Asuntohaku
 -------------------------------------------------------------------------------
 
 instance LomakeName Asuntohaku where
-    type LomakeShortName Asuntohaku = "ajk-lomake"
+    type LomakeShortName Asuntohaku = "asuntohaku"
     lomakeTitle _ = "Hakulomake Satalinnan Säätion vuokraamiin huoneistoihin"
     lomakeEmailTitle _ = "Asuntohakemus"
     lomakePreamble _ = Just "Panostathan hakemukseen, sillä valinnat tehdään hakemusten perusteella."

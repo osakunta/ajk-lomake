@@ -107,6 +107,7 @@ LABEL author="Oleg Grenrus <oleg.grenrus@iki.fi>"
 RUN apt-get -yq update && apt-get -yq --no-install-suggests --no-install-recommends install \
     ca-certificates \
     curl \
+    ghostscript \
     locales \
     libgmp10 \
     liblapack3 \

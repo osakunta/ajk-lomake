@@ -127,7 +127,8 @@ ENV LANGUAGE=en_US:en
 ENV LC_ALL=en_US.UTF-8
 
 # Config msmtp to use G Suite relay for email sending
-RUN echo 'host smtp-relay.gmail.com\n\
+RUN echo 'domain satakuntatalo.fi\n\
+host smtp-relay.gmail.com\n\
 port 587\n\
 tls on\n\
 tls_trust_file /etc/ssl/certs/ca-certificates.crt\n\

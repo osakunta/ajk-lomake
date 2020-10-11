@@ -6,12 +6,12 @@
 {-# LANGUAGE UndecidableInstances #-}
 module SatO.AJK.Lomake.Palaute where
 
-import Data.List.NonEmpty (NonEmpty)
-import Data.Maybe         (fromMaybe)
-import Data.Reflection    (Given (..))
-import Data.Text          (Text)
-import Generics.SOP.TH    (deriveGeneric)
-import Network.Mail.Mime  (Address)
+import Data.List.NonEmpty     (NonEmpty)
+import Data.Maybe             (fromMaybe)
+import Data.Reflection        (Given (..))
+import Data.Text              (Text)
+import Generics.SOP.TH        (deriveGeneric)
+import Network.SendGridV3.Api (MailAddress)
 
 import Lomake
 
@@ -51,7 +51,7 @@ instance LomakeEmail Palaute where
         inner :: Palaute'
         inner = unD $ palauteInner sis
 
-newtype PalauteAddress = PalauteAddress (NonEmpty Address)
+newtype PalauteAddress = PalauteAddress (NonEmpty MailAddress)
 
 instance Given PalauteAddress => LomakeAddress Palaute where
     lomakeAddress _ = case given of

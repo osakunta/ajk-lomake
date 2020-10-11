@@ -13,16 +13,14 @@ module SatO.AJK.Lomake (
     Page(..),
     ) where
 
-import System.Exit (ExitCode (..))
 import Control.Exception         (SomeException)
-import Control.Lens              (ifor_, forOf)
+import Control.Lens              (forOf, ifor_)
 import Control.Monad             (forM_, when)
 import Control.Monad.IO.Class    (MonadIO (..))
 import Data.FileEmbed            (embedStringFile)
 import Data.Function             ((&))
 import Data.List.NonEmpty        (NonEmpty)
 import Data.Maybe                (fromMaybe)
-import Data.Monoid               (Endo (..))
 import Data.Reflection           (give)
 import Data.Semigroup            ((<>))
 import Data.String               (fromString)
@@ -30,21 +28,23 @@ import Data.Text                 (Text)
 import Futurice.Prelude
 import Lucid                     hiding (for_)
 import Network.HTTP.Types.Status (status500)
-import Network.Mail.Mime
+import Network.SendGridV3.Api    (MailAddress (..))
 import Network.Wai
 import Prelude ()
 import Servant
 import Servant.HTML.Lucid
 import Servant.Multipart
 import System.Environment        (lookupEnv)
+import System.Exit               (ExitCode (..))
 import System.IO                 (hPutStrLn, stderr, stdout)
 import Text.Read                 (readMaybe)
 
+import qualified Data.ByteString.Base64    as Base64
 import qualified Data.ByteString.Lazy      as LBS
 import qualified Data.List.NonEmpty        as NE
 import qualified Data.Text                 as T
-import qualified Data.Text.Lazy            as TL
 import qualified Graphics.PDF              as PDF
+import qualified Network.SendGridV3.Api    as SG
 import qualified Network.Wai.Handler.Warp  as Warp
 import qualified System.Process.ByteString as ProcBS
 
@@ -143,54 +143,86 @@ firstPost (LomakeResult env ma) = do
         return bs'
     return $ Page $ LomakeResult env' ma
 
-sendmail' :: Mail -> IO ()
-sendmail' mail = do
-    bs <- renderMail' mail
-    LBS.hPutStr stdout bs
-    LBS.hPutStr stdout "\n\n"
-    sendmail bs
+sendmail' :: SG.ApiKey -> SG.Mail () () -> IO ()
+sendmail' apiKey mail = do
+    print mail
+    res <- SG.sendMail apiKey mail
+    putStrLn $ "Result: " ++ show res
 
 secondPost
     :: forall m a.
        (MonadIO m, LomakeForm a, LomakeEmail a, LomakeAddress a, LomakeName a)
-    => LomakeResult a -> m (ConfirmPage a)
-secondPost (LomakeResult _ Nothing) = pure $ ConfirmPage False
-secondPost (LomakeResult _ (Just ajk)) = do
+    => MailAddress
+    -> SG.ApiKey
+    -> LomakeResult a
+    -> m (ConfirmPage a)
+secondPost _           _        (LomakeResult _ Nothing)    = pure $ ConfirmPage False
+secondPost fromAddress sgApiKey (LomakeResult _ (Just ajk)) = do
     liftIO $ forM_ toAddresses $ \toAddress -> do
-        let mail = addPdfAttachments
-                $ addAttachements
-                $ simpleMail' toAddress fromAddress subject body :: Mail
-            mail' = (\a -> mail { mailTo = [a] }) <$> lomakeSend ajk
+        -- empty mail
+        let mail0 :: SG.Mail () ()
+            mail0 = SG.mail [] fromAddress subject (SG.mailContentText body :| [])
+
+        -- mail with attachments
+        let mail1 = mail0
+                { SG._mailAttachments = fmap toList . NE.nonEmpty $
+                    -- supplied attachments
+                    [ pdfAttachment n bs
+                    | (n, bs) <- attachements pretty
+                    ] ++
+                    -- lomake data itself
+                    [ pdfAttachment pdfName (LBS.toStrict pdfBS)
+                    | lomakePdf proxyA
+                    ]
+        -- todo add attachments
+                }
+
+        -- mail to committee
+        let mail = mail1
+                { SG._mailPersonalizations = [SG.personalization $ toAddress :| []]
+                , SG._mailReplyTo          = lomakeSend ajk
+                }
+
+        -- mail to applicant
+        let mailCopy = lomakeSend ajk <&> \addr -> mail1
+                { SG._mailPersonalizations = [SG.personalization $ addr :| []]
+                , SG._mailReplyTo          = Just toAddress
+                }
+
         hPutStrLn stderr $ "Sending application from " <> T.unpack name <> " to " <> show toAddress
-        hPutStrLn stdout $ TL.unpack body
+        hPutStrLn stdout $ T.unpack body
 
         -- Send to reciepent
-        sendmail' mail
+        sendmail' sgApiKey mail
+
         -- Send to applicant
-        case mail' of
+        case mailCopy of
             Nothing -> return ()
-            Just m -> sendmail' m
+            Just m -> sendmail' sgApiKey m
 
     pure $ ConfirmPage True
   where
     proxyA = Proxy :: Proxy a
 
-    addPdfAttachments
-        | lomakePdf proxyA =
-            addAttachmentBS "application/pdf" pdfName pdfBS
-        | otherwise = id
+    pdfAttachment :: Text -> ByteString -> SG.MailAttachment
+    pdfAttachment n bs = SG.MailAttachment
+        { SG._mailAttachmentContent     = decodeUtf8Lenient $ Base64.encode bs
+        , SG._mailAttachmentType        = Just "application/pdf"
+        , SG._mailAttachmentFilename    = n
+        , SG._mailAttachmentDisposition = Nothing
+        , SG._mailAttachmentContentId   = ""
+        }
 
-    addAttachements = appEndo $ foldMap f $ attachements $ lomakePretty ajk where
-        f (n, bs) = Endo $ addAttachmentBS "application/pdf" (n <> ".pdf") (LBS.fromStrict bs)
+    pretty = lomakePretty ajk
 
-    body :: TL.Text
-    body = TL.fromStrict $ render $ lomakePretty ajk
+    body :: Text
+    body = render pretty
 
     pdfBS :: LBS.ByteString
     pdfBS = PDF.pdfByteString PDF.standardDocInfo a4rect pdf
 
     pdf :: PDF.PDF ()
-    pdf = ifor_ (renderPDFText subject (lomakePretty ajk)) $ \n draw -> do
+    pdf = ifor_ (renderPDFText subject pretty) $ \n draw -> do
         page <- PDF.addPage Nothing
         PDF.drawWithPage page (renderPDFFooter n subject)
         PDF.drawWithPage page draw
@@ -204,11 +236,8 @@ secondPost (LomakeResult _ (Just ajk)) = do
     pdfName :: Text
     pdfName = T.replace " " "-" (T.takeWhile (/= '<') name) <> ".pdf"
 
-    toAddresses :: NonEmpty Address
+    toAddresses :: NonEmpty MailAddress
     toAddresses = lomakeAddress proxyA
-
-    fromAddress :: Address
-    fromAddress = Address (Just subject) "noreply@satakuntatalo.fi"
 
 -------------------------------------------------------------------------------
 -- HTML stuff
@@ -236,31 +265,39 @@ page_ t b = doctypehtml_ $ do
 
 formServer
     :: (LomakeForm a, LomakeEmail a, LomakeAddress a, LomakeName a)
-    => Server (FormAPI a)
-formServer =
+    => MailAddress -> SG.ApiKey
+    -> Server (FormAPI a)
+formServer fromAddr sgApiKey =
          pure (Page $ LomakeResult emptyLomakeEnv Nothing)
     :<|> firstPost
-    :<|> secondPost
+    :<|> secondPost fromAddr sgApiKey
 
-server :: NonEmpty Address -> NonEmpty Address -> Server AJKLomakeAPI
-server addr huoltoAddr =
+server
+    :: NonEmpty MailAddress
+    -> NonEmpty MailAddress
+    -> MailAddress
+    -> SG.ApiKey
+    -> Server AJKLomakeAPI
+server addr huoltoAddr fromAddr sgApiKey =
     give (SisainenAddress addr) $
     give (AsuntohakuAddress addr) $
     give (PalauteAddress addr) $
     give (HuoltoilmoitusAddress huoltoAddr) $
     give (U.UusintaAddress addr) $
     return "ping pong"
-    :<|> formServer
-    :<|> formServer
-    :<|> formServer
-    :<|> formServer
-    :<|> formServer
+    :<|> formServer fromAddr sgApiKey
+    :<|> formServer fromAddr sgApiKey
+    :<|> formServer fromAddr sgApiKey
+    :<|> formServer fromAddr sgApiKey
+    :<|> formServer fromAddr sgApiKey
 
 app
-    :: NonEmpty Address -- ^ AJK Address
-    -> NonEmpty Address -- ^ Huolto Address
+    :: NonEmpty MailAddress -- ^ AJK MailAddress
+    -> NonEmpty MailAddress -- ^ Huolto MailAddress
+    -> MailAddress
+    -> SG.ApiKey
     -> Application
-app addr addrHuolto = serve ajkLomakeApi (server addr addrHuolto)
+app addrAjk addrHuolto addrFrom sgApiKey = serve ajkLomakeApi (server addrAjk addrHuolto addrFrom sgApiKey)
 
 lookupEnvWithDefault :: Read a => a -> String -> IO a
 lookupEnvWithDefault def v = do
@@ -270,23 +307,26 @@ lookupEnvWithDefault def v = do
 defaultMain :: IO ()
 defaultMain = do
     port <- lookupEnvWithDefault 8080 "PORT"
-    emailAddr <- fromMaybe "foo@example.com" <$> lookupEnv "LOMAKE_EMAILADDR"
-    huoltoAddr <- fromMaybe "foo@example.com" <$> lookupEnv "LOMAKE_HUOLTO_EMAILADDR"
-    let ajkAddress = mkAddr emailAddr
-    let huoltoAddress = mkAddr huoltoAddr
+    ajkAddress     <- mkAddrs . fromMaybe "foo@example.com"                 <$> lookupEnv "LOMAKE_EMAILADDR"
+    huoltoAddress  <- mkAddrs . fromMaybe "foo@example.com"                 <$> lookupEnv "LOMAKE_HUOLTO_EMAILADDR"
+    fromAddress    <- mkAddr . T.pack . fromMaybe "noreply@example.com"     <$> lookupEnv "LOMAKE_FROM_EMAILADDR"
+    sendgridApiKey <- SG.ApiKey . T.pack . fromMaybe "WRONGKEY" <$> lookupEnv "SENDGRID_API_KEY"
     hPutStrLn stderr "Hello, ajk-lomake-api is alive"
     hPutStrLn stderr "Starting web server"
     hPutStrLn stderr $ "http://localhost:" ++ show port
     let settings = Warp.defaultSettings
           & Warp.setPort port
           & Warp.setOnExceptionResponse onExceptionResponse
-    Warp.runSettings settings $ app ajkAddress huoltoAddress
+    Warp.runSettings settings $ app ajkAddress huoltoAddress fromAddress sendgridApiKey
 
 onExceptionResponse :: SomeException -> Response
 onExceptionResponse exc =
     responseLBS status500 [] $ fromString $ "Exception: " ++  show exc
 
-mkAddr :: String -> NonEmpty Address
-mkAddr t = Address Nothing <$> case T.splitOn "," (T.pack t) of
+mkAddr :: Text -> MailAddress
+mkAddr addr = MailAddress addr ""
+
+mkAddrs :: String -> NonEmpty MailAddress
+mkAddrs t = mkAddr <$> case T.splitOn "," (T.pack t) of
     []     -> "" NE.:| []
     (x:xs) -> x NE.:| xs

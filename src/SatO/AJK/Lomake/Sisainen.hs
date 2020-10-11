@@ -6,12 +6,12 @@
 {-# LANGUAGE UndecidableInstances #-}
 module SatO.AJK.Lomake.Sisainen where
 
-import Data.List.NonEmpty (NonEmpty)
-import Data.Reflection    (Given (..))
-import Data.Semigroup     ((<>))
-import Data.Text          (Text)
-import Generics.SOP.TH    (deriveGeneric)
-import Network.Mail.Mime  (Address (..))
+import Data.List.NonEmpty     (NonEmpty)
+import Data.Reflection        (Given (..))
+import Data.Semigroup         ((<>))
+import Data.Text              (Text)
+import Generics.SOP.TH        (deriveGeneric)
+import Network.SendGridV3.Api (MailAddress (..))
 
 import Lomake
 
@@ -79,11 +79,11 @@ instance LomakeEmail Sisainen where
         person :: SisPerson
         person = unD $ sisPerson sis
 
-    lomakeSend sis = Just $ Address (Just $ lomakeSender sis) addr
+    lomakeSend sis = Just $ MailAddress addr (lomakeSender sis)
       where
         addr = getFancyText . unD . sisEmail . unD . sisPerson $ sis
 
-newtype SisainenAddress = SisainenAddress (NonEmpty Address)
+newtype SisainenAddress = SisainenAddress (NonEmpty MailAddress)
 
 instance Given SisainenAddress => LomakeAddress Sisainen where
     lomakeAddress _ = case given of

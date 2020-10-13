@@ -25,12 +25,14 @@ library
   default-language: Haskell2010
   hs-source-dirs:   src
   ghc-options:      -Wall
+
   build-depends:
     , aeson
     , aeson-compat
     , base                  ^>=4.11.1.0
     , base-compat
     , base16-bytestring
+    , base64-bytestring
     , bifunctors
     , blaze-html
     , bytestring
@@ -40,7 +42,7 @@ library
     , file-embed
     , futurice-prelude
     , generics-sop
-    , HPDF
+    , HPDF                  ^>=1.4.10
     , http-api-data
     , http-client
     , http-client-tls
@@ -48,12 +50,12 @@ library
     , lens
     , lucid
     , markdown
-    , mime-mail
     , mtl
     , pretty
     , process-extras
     , reflection
     , semigroups
+    , sendgrid-v3
     , servant
     , servant-lucid
     , servant-multipart

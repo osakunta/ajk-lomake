@@ -7,13 +7,13 @@
 {-# LANGUAGE UndecidableInstances #-}
 module SatO.AJK.Lomake.Uusinta where
 
-import Data.List.NonEmpty   (NonEmpty)
-import Data.Reflection      (Given (..))
-import Data.Semigroup       ((<>))
-import Data.Text            (Text)
-import Generics.SOP.TH      (deriveGeneric)
-import GHC.Generics         (Generic)
-import Network.Mail.Mime    (Address (..))
+import Data.List.NonEmpty     (NonEmpty)
+import Data.Reflection        (Given (..))
+import Data.Semigroup         ((<>))
+import Data.Text              (Text)
+import Generics.SOP.TH        (deriveGeneric)
+import GHC.Generics           (Generic)
+import Network.SendGridV3.Api (MailAddress (..))
 
 import Lomake
 
@@ -129,11 +129,11 @@ instance LomakeEmail Uusinta where
 
         lastname = unD (personLastName person)
 
-    lomakeSend ajk  = Just $ Address (Just $ lomakeSender ajk) addr
+    lomakeSend ajk  = Just $ MailAddress addr (lomakeSender ajk)
       where
         addr = getFancyText . unD . personEmail . unD . uusintaPerson $ ajk
 
-newtype UusintaAddress = UusintaAddress (NonEmpty Address)
+newtype UusintaAddress = UusintaAddress (NonEmpty MailAddress)
 
 instance Given UusintaAddress => LomakeAddress Uusinta where
     lomakeAddress _ = case given of

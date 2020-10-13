@@ -5,11 +5,11 @@
 {-# LANGUAGE TypeFamilies        #-}
 module SatO.AJK.Lomake.Classes where
 
-import Data.List.NonEmpty (NonEmpty)
-import Data.Proxy         (Proxy (..))
-import Data.Text          (Text, pack)
-import GHC.TypeLits       (KnownSymbol, Symbol, symbolVal)
-import Network.Mail.Mime  (Address)
+import Data.List.NonEmpty     (NonEmpty)
+import Data.Proxy             (Proxy (..))
+import Data.Text              (Text, pack)
+import GHC.TypeLits           (KnownSymbol, Symbol, symbolVal)
+import Network.SendGridV3.Api (MailAddress)
 
 class KnownSymbol (LomakeShortName a) => LomakeName a where
     type LomakeShortName a :: Symbol
@@ -36,8 +36,8 @@ class LomakeEmail a where
     lomakeSender :: a -> Text
 
     -- | Send lomake to applicant
-    lomakeSend :: a -> Maybe Address
+    lomakeSend :: a -> Maybe MailAddress
     lomakeSend _ = Nothing
 
 class LomakeAddress a where
-    lomakeAddress :: Proxy a -> NonEmpty Address
+    lomakeAddress :: Proxy a -> NonEmpty MailAddress
